@@ -1,0 +1,56 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4344D8"/>
+      <stop offset="100%" stop-color="#2122B2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square (iOS-style corners) -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!--
+    Sync ring: two arcs forming a standard refresh/sync icon.
+    Ring center (512,512), radius 215, stroke 52.
+
+    Arc 1: 200° → 350° clockwise (150° sweep).
+      Start at 200°: (310, 438)
+      End   at 350°: (724, 475)
+
+    Arc 2: 20° → 170° clockwise (150° sweep).
+      Start at  20°: (714, 586)
+      End   at 170°: (300, 549)
+
+    Arrowheads computed from clockwise tangent at each arc endpoint.
+  -->
+
+  <!-- Arc 1 (upper arc) -->
+  <path d="M 310,438 A 215,215 0 0,1 724,475"
+        fill="none"
+        stroke="rgba(255,255,255,0.80)"
+        stroke-width="52"
+        stroke-linecap="round"/>
+
+  <!-- Arrowhead at 350° (tangent dir 80°) -->
+  <polygon points="724,475 690,441 745,431"
+           fill="rgba(255,255,255,0.80)"/>
+
+  <!-- Arc 2 (lower arc) -->
+  <path d="M 714,586 A 215,215 0 0,1 300,549"
+        fill="none"
+        stroke="rgba(255,255,255,0.80)"
+        stroke-width="52"
+        stroke-linecap="round"/>
+
+  <!-- Arrowhead at 170° (tangent dir 260°) -->
+  <polygon points="300,549 335,584 279,593"
+           fill="rgba(255,255,255,0.80)"/>
+
+  <!-- Bold checkmark — centered inside the ring -->
+  <path d="M 365,490 L 458,598 L 640,385"
+        fill="none"
+        stroke="white"
+        stroke-width="72"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>

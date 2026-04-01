@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+      SyncDO adaptive icon foreground.
+      Canvas 108×108. Safe zone: (18,18)→(90,90).
+      Checkmark scaled and centered within the safe zone.
+      Original path on 1024 canvas: M 248,516 L 432,706 L 790,348  stroke 96.
+      Scaled at 0.111× and centered → M 24,53 L 44,74 L 84,34  stroke 11.
+    -->
+    <path
+        android:pathData="M 24,53 L 44,74 L 84,34"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="11"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+
+</vector>

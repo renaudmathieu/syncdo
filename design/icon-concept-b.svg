@@ -1,0 +1,36 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4344D8"/>
+      <stop offset="100%" stop-color="#2122B2"/>
+    </linearGradient>
+
+    <!-- Subtle inner glow to lift the mark -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feFlood flood-color="rgba(255,255,255,0.18)" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square (iOS-style corners) -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!--
+    Concept B: Bold, oversized checkmark.
+    Pushes the full 70% of the icon width — designed to be instantly
+    readable at 20 px while staying clean at 1024 px.
+    The stroke is wide (94px) and the arm ratio is ~1 : 1.8.
+  -->
+  <path d="M 248,516 L 432,706 L 790,348"
+        fill="none"
+        stroke="white"
+        stroke-width="96"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        filter="url(#glow)"/>
+</svg>
