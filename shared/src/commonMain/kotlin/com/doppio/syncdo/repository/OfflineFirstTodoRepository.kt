@@ -7,9 +7,7 @@ import com.doppio.syncdo.model.toModel
 import com.doppio.syncdo.persistence.LocalStorage
 import com.doppio.syncdo.sync.SyncEngine
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -20,35 +18,33 @@ import kotlin.uuid.Uuid
 class OfflineFirstTodoRepository(
     private val nodeId: NodeId,
     private val storage: LocalStorage,
+    initialState: TodoListCrdt = TodoListCrdt(),
+    scope: CoroutineScope,
 ) : TodoRepository {
 
     private val mutex = Mutex()
-    private var state = TodoListCrdt()
+    private val crdtState = MutableStateFlow(initialState)
     private val deltaBuffer = DeltaBuffer()
-    private var tagCounter = 0L
+    private var tagCounter = initialState.clock[nodeId]
     private var syncEngine: SyncEngine? = null
     private var statusCollectionJob: kotlinx.coroutines.Job? = null
 
-    private val _todos = MutableStateFlow<List<TodoItem>>(emptyList())
-    override val todos: StateFlow<List<TodoItem>> = _todos
+    override val todos: StateFlow<List<TodoItem>> = crdtState
+        .map { it.toTodoItems() }
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = initialState.toTodoItems()
+        )
 
-    private val _syncStatus = MutableStateFlow(SyncStatus.Offline)
-    override val syncStatus: StateFlow<SyncStatus> = _syncStatus
+    override val syncStatus: StateFlow<SyncStatus>
+        field = MutableStateFlow(SyncStatus.Offline)
 
     fun attachSyncEngine(engine: SyncEngine, scope: CoroutineScope) {
         statusCollectionJob?.cancel()
         syncEngine = engine
         statusCollectionJob = scope.launch {
-            engine.syncStatus.collect { status -> _syncStatus.update { status } }
-        }
-    }
-
-    suspend fun initialize() {
-        mutex.withLock {
-            state = storage.load() ?: TodoListCrdt()
-            // Restore tagCounter from existing state to avoid collisions
-            tagCounter = state.clock[nodeId]
-            emitTodos()
+            engine.syncStatus.collect { status -> syncStatus.update { status } }
         }
     }
 
@@ -151,9 +147,8 @@ class OfflineFirstTodoRepository(
                 items = delta.addedOrUpdatedItems,
                 clock = delta.clock
             )
-            state = state.merge(remotePart)
-            storage.save(state)
-            emitTodos()
+            crdtState.value = crdtState.value.merge(remotePart)
+            storage.save(crdtState.value)
         }
     }
 
@@ -161,23 +156,14 @@ class OfflineFirstTodoRepository(
 
     fun restorePendingDelta(delta: TodoListDelta) = deltaBuffer.restore(delta)
 
-    fun getLocalClock(): VectorClock = state.clock
+    fun getLocalClock(): VectorClock = crdtState.value.clock
 
     private suspend fun mutate(block: (TodoListCrdt) -> TodoListCrdt) {
         mutex.withLock {
-            state = block(state)
-            storage.save(state)
-            emitTodos()
+            crdtState.value = block(crdtState.value)
+            storage.save(crdtState.value)
         }
         syncEngine?.pushPendingDelta()
-    }
-
-    private fun emitTodos() {
-        val activeIds = state.itemIds.elements()
-        val items = activeIds.mapNotNull { id ->
-            state.items[id]?.toModel()
-        }.sortedBy { it.position }
-        _todos.update { items }
     }
 
     private fun nextPosition(currentState: TodoListCrdt): Double {
@@ -192,4 +178,7 @@ class OfflineFirstTodoRepository(
         tagCounter++
         return UniqueTag(nodeId, tagCounter)
     }
+
+    private fun TodoListCrdt.toTodoItems(): List<TodoItem> =
+        itemIds.elements().mapNotNull { id -> items[id]?.toModel() }.sortedBy { it.position }
 }

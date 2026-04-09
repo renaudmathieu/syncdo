@@ -28,8 +28,8 @@ class SyncEngine(
         install(WebSockets)
     }
 
-    private val _syncStatus = MutableStateFlow(SyncStatus.Offline)
-    val syncStatus: StateFlow<SyncStatus> = _syncStatus
+    val syncStatus: StateFlow<SyncStatus>
+        field = MutableStateFlow(SyncStatus.Offline)
 
     private var session: WebSocketSession? = null
     private var connectJob: Job? = null
@@ -39,7 +39,7 @@ class SyncEngine(
             var delay = 1000L
             while (isActive) {
                 try {
-                    _syncStatus.update { SyncStatus.Syncing }
+                    syncStatus.update { SyncStatus.Syncing }
                     client.webSocket(host = serverUrl, port = serverPort, path = "/sync") {
                         session = this
                         delay = 1000L // reset backoff on successful connection
@@ -54,7 +54,7 @@ class SyncEngine(
                         // Push any pending local changes
                         pushPendingDelta()
 
-                        _syncStatus.update { SyncStatus.Synced }
+                        syncStatus.update { SyncStatus.Synced }
 
                         // Receive loop
                         for (frame in incoming) {
@@ -66,7 +66,7 @@ class SyncEngine(
                     }
                 } catch (e: Exception) {
                     println("SyncDO: WebSocket connection error: ${e.message}")
-                    _syncStatus.update { SyncStatus.Offline }
+                    syncStatus.update { SyncStatus.Offline }
                 }
                 session = null
                 delay(delay)
@@ -81,7 +81,7 @@ class SyncEngine(
                 if (!message.delta.isEmpty()) {
                     onRemoteDelta(message.delta)
                 }
-                _syncStatus.update { SyncStatus.Synced }
+                syncStatus.update { SyncStatus.Synced }
             }
 
             is SyncMessage.FullSync -> {
@@ -94,7 +94,7 @@ class SyncEngine(
                     clock = message.state.clock
                 )
                 onRemoteDelta(fullDelta)
-                _syncStatus.update { SyncStatus.Synced }
+                syncStatus.update { SyncStatus.Synced }
             }
 
             else -> {} // PushDelta and PullRequest are server-side messages
@@ -103,18 +103,18 @@ class SyncEngine(
 
     suspend fun pushPendingDelta() {
         val ws = session ?: run {
-            _syncStatus.update { SyncStatus.PendingChanges }
+            syncStatus.update { SyncStatus.PendingChanges }
             return
         }
         val delta = getPendingDelta() ?: return
         try {
-            _syncStatus.update { SyncStatus.Syncing }
+            syncStatus.update { SyncStatus.Syncing }
             val message = SyncMessage.PushDelta(delta = delta, nodeId = nodeId)
             ws.send(Frame.Text(json.encodeToString(SyncMessage.serializer(), message)))
         } catch (e: Exception) {
             println("SyncDO: Failed to push delta: ${e.message}")
             restorePendingDelta(delta)
-            _syncStatus.update { SyncStatus.PendingChanges }
+            syncStatus.update { SyncStatus.PendingChanges }
         }
     }
 
@@ -123,6 +123,6 @@ class SyncEngine(
         connectJob = null
         scope.launch { session?.close() }
         session = null
-        _syncStatus.update { SyncStatus.Offline }
+        syncStatus.update { SyncStatus.Offline }
     }
 }
