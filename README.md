@@ -50,7 +50,7 @@ You should see:
 ... Responding at http://0.0.0.0:8080
 ```
 
-Note your machine's local IP address (e.g., `192.168.1.42`). You'll enter this in the clients.
+Note your machine's local IP address (e.g., `192.168.1.xx`). You'll enter this in the clients.
 
 ### 2. Run the Desktop App
 

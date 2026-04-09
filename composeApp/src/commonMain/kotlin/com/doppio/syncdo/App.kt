@@ -30,7 +30,7 @@ private const val SERVER_HOST_FILE = "server-host.txt"
 
 @Composable
 fun App() {
-    var serverHost by remember { mutableStateOf("192.168.") }
+    var serverHost by remember { mutableStateOf("172.16.110.8") }
     var connectionState by remember { mutableStateOf(ConnectionState.INPUT) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -142,7 +142,7 @@ private fun ConnectionScreen(
                 value = serverHost,
                 onValueChange = onServerHostChange,
                 label = { Text("Server Host") },
-                placeholder = { Text("192.168.1.42") },
+                placeholder = { Text("172.16.110.8") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
