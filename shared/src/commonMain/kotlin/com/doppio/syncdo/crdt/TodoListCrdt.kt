@@ -5,6 +5,9 @@ import kotlinx.serialization.Serializable
 /**
  * Aggregate CRDT for the entire todo list.
  * Composes an OR-Set (for membership) with a map of TodoItemCrdt (for item data).
+ *
+ * The advantage of CRDTs is to define at what granularity and on what problems LWW applies,
+ * and to guarantee convergence even when several structures are composed together.
  */
 @Serializable
 data class TodoListCrdt(

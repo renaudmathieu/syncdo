@@ -5,9 +5,15 @@ package com.doppio.syncdo.crdt
  * Thread-safe usage is the caller's responsibility (repository uses a mutex).
  */
 class DeltaBuffer {
+
     private var pending: TodoListDelta = TodoListDelta()
 
-    fun recordAdd(id: String, item: TodoItemCrdt, tag: UniqueTag, clock: VectorClock) {
+    fun recordAdd(
+        id: String,
+        item: TodoItemCrdt,
+        tag: UniqueTag,
+        clock: VectorClock
+    ) {
         pending = pending.merge(
             TodoListDelta(
                 addedOrUpdatedItems = mapOf(id to item),
@@ -17,7 +23,11 @@ class DeltaBuffer {
         )
     }
 
-    fun recordRemove(id: String, tombstonedTags: Set<UniqueTag>, clock: VectorClock) {
+    fun recordRemove(
+        id: String,
+        tombstonedTags: Set<UniqueTag>,
+        clock: VectorClock
+    ) {
         pending = pending.merge(
             TodoListDelta(
                 removedItemTags = mapOf(id to tombstonedTags),
@@ -26,7 +36,11 @@ class DeltaBuffer {
         )
     }
 
-    fun recordUpdate(id: String, item: TodoItemCrdt, clock: VectorClock) {
+    fun recordUpdate(
+        id: String,
+        item: TodoItemCrdt,
+        clock: VectorClock
+    ) {
         pending = pending.merge(
             TodoListDelta(
                 addedOrUpdatedItems = mapOf(id to item),
@@ -45,6 +59,5 @@ class DeltaBuffer {
     fun restore(delta: TodoListDelta) {
         pending = delta.merge(pending)
     }
-
-    fun hasPending(): Boolean = !pending.isEmpty()
+    
 }

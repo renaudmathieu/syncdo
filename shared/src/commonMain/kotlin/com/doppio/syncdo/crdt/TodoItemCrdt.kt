@@ -1,7 +1,7 @@
 package com.doppio.syncdo.crdt
 
-import kotlin.time.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 /**
  * CRDT representation of a single todo item.
