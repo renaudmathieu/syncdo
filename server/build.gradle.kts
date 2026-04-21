@@ -5,6 +5,14 @@ plugins {
     application
 }
 
+kotlin {
+    compilerOptions {
+        // Kotlin 2.3.x is a pre-release; skip the check so the JVM-only server module
+        // can load classes produced by the KMP-compiled shared module.
+        freeCompilerArgs.add("-Xskip-prerelease-check")
+    }
+}
+
 group = "com.doppio.syncdo"
 version = "1.0.0"
 application {
@@ -16,14 +24,12 @@ application {
 
 dependencies {
     implementation(projects.shared)
+    implementation(projects.sync)
     implementation(libs.logback)
-    implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
-    implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.server.contentNegotiation)
     implementation(libs.ktor.serialization.json)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinx.datetime)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }

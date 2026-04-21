@@ -138,4 +138,20 @@ class TodoListCrdtTest {
         assertFalse(merged.items.containsKey("1"))
         assertTrue(merged.items.containsKey("2"))
     }
+
+    @Test
+    fun applyDeltaConvergesWithMerge() {
+        val item = createItem("1", "Task", 1.0, "nodeA", 1000)
+        val base = TodoListCrdt()
+
+        val delta = TodoListDelta(
+            items = mapOf("1" to item),
+            membership = OrSetDelta(addedTags = mapOf("1" to setOf(UniqueTag("nodeA", 1)))),
+            clock = VectorClock().increment("nodeA")
+        )
+
+        val viaApply = base.applyDelta(delta)
+        assertTrue(viaApply.itemIds.contains("1"))
+        assertEquals("Task", viaApply.items["1"]!!.title.value)
+    }
 }

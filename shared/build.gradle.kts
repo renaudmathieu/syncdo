@@ -26,27 +26,14 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(projects.crdt)
+            api(projects.sync)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            api(libs.kotlinx.datetime)
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.websockets)
-            implementation(libs.ktor.client.contentNegotiation)
-            implementation(libs.ktor.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
-        }
-        androidMain.dependencies {
-            implementation(libs.ktor.client.cio)
-        }
-        jvmMain.dependencies {
-            implementation(libs.ktor.client.cio)
-            api(libs.kotlinx.datetime)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
     }
 }

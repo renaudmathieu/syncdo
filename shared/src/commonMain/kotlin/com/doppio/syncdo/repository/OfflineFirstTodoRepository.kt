@@ -1,11 +1,11 @@
 package com.doppio.syncdo.repository
 
 import com.doppio.syncdo.crdt.*
-import com.doppio.syncdo.model.SyncStatus
 import com.doppio.syncdo.model.TodoItem
 import com.doppio.syncdo.model.toModel
 import com.doppio.syncdo.persistence.LocalStorage
 import com.doppio.syncdo.sync.SyncEngine
+import com.doppio.syncdo.sync.SyncStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -24,9 +24,9 @@ class OfflineFirstTodoRepository(
 
     private val mutex = Mutex()
     private val crdtState = MutableStateFlow(initialState)
-    private val deltaBuffer = DeltaBuffer()
+    private val deltaBuffer = DeltaBuffer<TodoListDelta>()
     private var tagCounter = initialState.clock[nodeId]
-    private var syncEngine: SyncEngine? = null
+    private var syncEngine: SyncEngine<TodoListDelta>? = null
     private var statusCollectionJob: kotlinx.coroutines.Job? = null
 
     override val todos: StateFlow<List<TodoItem>> = crdtState
@@ -40,7 +40,7 @@ class OfflineFirstTodoRepository(
     override val syncStatus: StateFlow<SyncStatus>
         field = MutableStateFlow(SyncStatus.Offline)
 
-    fun attachSyncEngine(engine: SyncEngine, scope: CoroutineScope) {
+    fun attachSyncEngine(engine: SyncEngine<TodoListDelta>, scope: CoroutineScope) {
         statusCollectionJob?.cancel()
         syncEngine = engine
         statusCollectionJob = scope.launch {
@@ -52,102 +52,68 @@ class OfflineFirstTodoRepository(
     override suspend fun addTodo(title: String) = mutate { currentState ->
         val id = Uuid.random().toString()
         val now = Clock.System.now()
-        val position = nextPosition(currentState)
-        val item = TodoItemCrdt.create(id, title, position, nodeId, now)
-        val tag = nextTag()
+        val item = TodoItemCrdt.create(id, title, nextPosition(currentState), nodeId, now)
+        val (newIds, membershipDelta) = currentState.itemIds.addWithDelta(id, nodeId, nextTagCounter())
         val newClock = currentState.clock.increment(nodeId)
 
-        val newState = currentState.copy(
-            itemIds = currentState.itemIds.add(id, tag.nodeId, tag.counter),
+        deltaBuffer.record(TodoListDelta(
+            items = mapOf(id to item),
+            membership = membershipDelta,
+            clock = newClock,
+        ))
+        currentState.copy(
+            itemIds = newIds,
             items = currentState.items + (id to item),
-            clock = newClock
+            clock = newClock,
         )
-        deltaBuffer.recordAdd(id, item, tag, newClock)
-        newState
     }
 
     override suspend fun removeTodo(id: String) = mutate { currentState ->
-        val observedTags = currentState.itemIds.entries[id] ?: return@mutate currentState
+        val (newIds, membershipDelta) = currentState.itemIds.removeWithDelta(id)
+        if (membershipDelta.isEmpty()) return@mutate currentState
         val newClock = currentState.clock.increment(nodeId)
 
-        val newState = currentState.copy(
-            itemIds = currentState.itemIds.remove(id),
-            clock = newClock
-        )
-        deltaBuffer.recordRemove(id, observedTags, newClock)
-        newState
+        deltaBuffer.record(TodoListDelta(
+            membership = membershipDelta,
+            clock = newClock,
+        ))
+        currentState.copy(itemIds = newIds, clock = newClock)
     }
 
-    override suspend fun toggleCompleted(id: String) = mutate { currentState ->
-        val item = currentState.items[id] ?: return@mutate currentState
-        val now = Clock.System.now()
-        val newClock = currentState.clock.increment(nodeId)
-        val updated = item.copy(completed = LwwRegister(!item.completed.value, now, nodeId))
+    override suspend fun toggleCompleted(id: String) =
+        updateItem(id) { copy(completed = LwwRegister(!completed.value, Clock.System.now(), nodeId)) }
 
-        val newState = currentState.copy(
-            items = currentState.items + (id to updated),
-            clock = newClock
-        )
-        deltaBuffer.recordUpdate(id, updated, newClock)
-        newState
-    }
+    override suspend fun updateTitle(id: String, newTitle: String) =
+        updateItem(id) { copy(title = LwwRegister(newTitle, Clock.System.now(), nodeId)) }
 
-    override suspend fun updateTitle(id: String, newTitle: String) = mutate { currentState ->
-        val item = currentState.items[id] ?: return@mutate currentState
-        val now = Clock.System.now()
-        val newClock = currentState.clock.increment(nodeId)
-        val updated = item.copy(title = LwwRegister(newTitle, now, nodeId))
+    override suspend fun updateNote(id: String, newNote: String) =
+        updateItem(id) { copy(note = LwwRegister(newNote, Clock.System.now(), nodeId)) }
 
-        val newState = currentState.copy(
-            items = currentState.items + (id to updated),
-            clock = newClock
-        )
-        deltaBuffer.recordUpdate(id, updated, newClock)
-        newState
-    }
+    override suspend fun reorderTodo(id: String, newPosition: Double) =
+        updateItem(id) { copy(position = LwwRegister(newPosition, Clock.System.now(), nodeId)) }
 
-    override suspend fun updateNote(id: String, newNote: String) = mutate { currentState ->
-        val item = currentState.items[id] ?: return@mutate currentState
-        val now = Clock.System.now()
-        val newClock = currentState.clock.increment(nodeId)
-        val updated = item.copy(note = LwwRegister(newNote, now, nodeId))
+    private suspend fun updateItem(id: String, transform: TodoItemCrdt.() -> TodoItemCrdt) =
+        mutate { currentState ->
+            val item = currentState.items[id] ?: return@mutate currentState
+            val updated = item.transform()
+            val newClock = currentState.clock.increment(nodeId)
 
-        val newState = currentState.copy(
-            items = currentState.items + (id to updated),
-            clock = newClock
-        )
-        deltaBuffer.recordUpdate(id, updated, newClock)
-        newState
-    }
-
-    override suspend fun reorderTodo(id: String, newPosition: Double) = mutate { currentState ->
-        val item = currentState.items[id] ?: return@mutate currentState
-        val now = Clock.System.now()
-        val newClock = currentState.clock.increment(nodeId)
-        val updated = item.copy(position = LwwRegister(newPosition, now, nodeId))
-
-        val newState = currentState.copy(
-            items = currentState.items + (id to updated),
-            clock = newClock
-        )
-        deltaBuffer.recordUpdate(id, updated, newClock)
-        newState
-    }
+            deltaBuffer.record(TodoListDelta(
+                items = mapOf(id to updated),
+                clock = newClock,
+            ))
+            currentState.copy(
+                items = currentState.items + (id to updated),
+                clock = newClock,
+            )
+        }
 
     /**
      * Called by SyncEngine when remote deltas arrive.
      */
     suspend fun mergeRemoteDelta(delta: TodoListDelta) {
         mutex.withLock {
-            val remotePart = TodoListCrdt(
-                itemIds = OrSet(
-                    entries = delta.addedItemTags,
-                    tombstones = delta.removedItemTags
-                ),
-                items = delta.addedOrUpdatedItems,
-                clock = delta.clock
-            )
-            crdtState.value = crdtState.value.merge(remotePart)
+            crdtState.value = crdtState.value.applyDelta(delta)
             storage.save(crdtState.value)
         }
     }
@@ -174,9 +140,9 @@ class OfflineFirstTodoRepository(
         return maxPos + 1.0
     }
 
-    private fun nextTag(): UniqueTag {
+    private fun nextTagCounter(): Long {
         tagCounter++
-        return UniqueTag(nodeId, tagCounter)
+        return tagCounter
     }
 
     private fun TodoListCrdt.toTodoItems(): List<TodoItem> =

@@ -1,88 +1,90 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code working in this repo.
 
-## Project Overview
+## What this repo is
 
-SyncDO is a collaborative todo app built with Kotlin Multiplatform (KMP), using CRDTs for conflict-free real-time synchronization across devices. Targets: Android, iOS, Desktop (JVM), with a Ktor WebSocket server.
+Two publishable KMP libraries (`:crdt`, `:sync`) + a Todo sample app (`:shared`,
+`:composeApp`, `:server`) that demonstrates using them together.
 
-## Build & Run Commands
+**The sample code is not part of the published surface.** When proposing changes,
+keep library APIs (anything in `:crdt` and `:sync`) clean, generic, and
+domain-agnostic. Todo-specific concepts belong in `:shared`.
+
+## Module map
+
+| Module | Kind | Targets | Notes |
+|---|---|---|---|
+| `:crdt` | **published library** | android, iosArm64, iosSimulatorArm64, jvm | Generic CRDT primitives. No app-specific types. |
+| `:sync` | **published library** | android, iosArm64, iosSimulatorArm64, jvm | `commonMain` = client engine + protocol; `jvmMain` = Ktor server helpers. Depends on `:crdt`. |
+| `:shared` | sample glue | android, ios, jvm | Todo CRDT + repository + file persistence. Depends on `:crdt` + `:sync` (both `api`). |
+| `:composeApp` | sample UI | android, ios, jvm | Compose Multiplatform. |
+| `:server` | sample server | jvm | Ktor + `syncEndpoint` from `:sync`. |
+
+## Build & test
 
 ```shell
-# Build shared module tests (JVM target — fastest feedback loop)
-./gradlew :shared:jvmTest
-
-# Run a single test class
-./gradlew :shared:jvmTest --tests "com.doppio.syncdo.crdt.VectorClockTest"
-
-# Run desktop app (requires server running)
-./gradlew :composeApp:run
-
-# Run server (port 8080)
-./gradlew :server:run
-
-# Build Android APK
-./gradlew :composeApp:assembleDebug
-
-# Run server tests
+./gradlew build                                # Everything (slow first time — iOS link)
+./gradlew :crdt:allTests :sync:allTests        # Library tests (incl. iOS sim)
+./gradlew :shared:jvmTest                      # Todo CRDT tests (fastest feedback)
 ./gradlew :server:test
-
-# Full build check
-./gradlew build
+./gradlew :composeApp:run                      # Desktop sample (needs :server running)
+./gradlew :server:run                          # Port 8080
+./gradlew :crdt:apiCheck :sync:apiCheck        # Binary-compat guard against committed api/ baselines
+./gradlew :crdt:apiDump :sync:apiDump          # Regenerate baselines after intentional API changes
+./gradlew :crdt:publishToMavenLocal :sync:publishToMavenLocal
 ```
 
-## Architecture
+## Library architecture
 
-### Three Gradle modules
+### `:crdt`
 
-- **`shared`** — Platform-agnostic business logic: CRDT types, sync protocol, persistence, repository. This is the core of the app. Targets: Android, iOS, JVM.
-- **`composeApp`** — Compose Multiplatform UI layer. Depends on `shared`. Targets: Android, iOS, JVM (desktop).
-- **`server`** — Ktor server (Netty, JVM only). Depends on `shared` for CRDT and sync message types. WebSocket endpoint at `/sync`.
+- `CrdtState<T>` — base interface with `merge`.
+- `Delta<D>` — partial change with `clock`, `merge`, `isEmpty`.
+- `DeltaState<S, D>` — `CrdtState` that supports `applyDelta(delta)`.
+- `VectorClock`, `LwwRegister<T>` (uses `kotlin.time.Instant`), `OrSet<E>`,
+  `DeltaBuffer<D>`.
+- All types `@Serializable`.
 
-### CRDT layer (`shared/.../crdt/`)
+### `:sync`
 
-The sync model is built on composable CRDTs:
-- **`VectorClock`** — Logical timestamps per node for causal ordering.
-- **`LwwRegister<T>`** — Last-writer-wins register using `kotlinx-datetime` Instant + node ID tiebreaker.
-- **`OrSet<T>`** — Observed-Remove Set with unique tags for add/remove conflict resolution.
-- **`TodoItemCrdt`** — Composes LWW registers for each field (title, completed, note, position).
-- **`TodoListCrdt`** — Top-level aggregate: OrSet for item membership + map of TodoItemCrdt per item.
-- **`TodoListDelta`** — Partial diff structure (added/updated items, added/removed tags, clock) used for incremental sync instead of shipping full state.
+- `SyncMessage<D>` — sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
+  with `SyncMessage.serializer(deltaSerializer)`.
+- `SyncEngine<D : Delta<D>>` — client WebSocket engine. Constructor takes a
+  `KSerializer<D>` and four callbacks (`onRemoteDelta`, `getPendingDelta`,
+  `restorePendingDelta`, `getLocalClock`). Exponential backoff reconnect.
+- `SyncStatus` — `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
+- `com.doppio.syncdo.sync.server.SyncServer<S : DeltaState<S, D>, D : Delta<D>>`
+  (jvmMain) — authoritative state + bounded `DeltaLog` + mutex.
+- `Route.syncEndpoint(server, deltaSerializer, path = "/sync")` (jvmMain) —
+  Ktor WebSocket handler; broadcasts pushes to peers, answers pulls with missed
+  deltas, falls back to full-state delta if the log doesn't reach the client's
+  clock.
 
-All CRDT types implement `CrdtState<T>` with a `merge()` function. They are `@Serializable`.
+## Sample data flow (Todo)
 
-### Sync protocol (`shared/.../sync/`)
+1. User action → `TodoViewModel` → `TodoRepository.addTodo(...)`.
+2. `OfflineFirstTodoRepository` updates local `TodoListCrdt`, persists JSON via
+   `JsonFileStorage`, records a `TodoListDelta` in its `DeltaBuffer`.
+3. `SyncEngine<TodoListDelta>` pushes buffered delta over WebSocket.
+4. `:server` → `SyncServer.mergeDelta(...)` → broadcast `PullResponse` to peers.
+5. Peers' `onRemoteDelta` callback → `repository.mergeRemoteDelta(...)` → state
+   update + re-persist.
 
-- **`SyncMessage`** — Sealed class with variants: `PushDelta`, `PullRequest`, `PullResponse`, `FullSync`. Serialized as JSON over WebSocket.
-- **`SyncEngine`** — Client-side WebSocket connection with exponential backoff reconnection. On connect, sends `PullRequest` with local clock, then pushes pending deltas.
-- **`DeltaBuffer`** — Accumulates local changes into a pending delta until successfully pushed.
+## Conventions
 
-### Data flow
+- Manual DI: `composeApp/.../di/AppModule.kt`. No Koin/Dagger.
+- Server port `8080` (see `shared/.../Constants.kt`). Host defaults to
+  `localhost`; overridable in `AppModule.initialize(serverHost)`.
+- `FileIO` in `:shared` uses `expect/actual` per platform — sample concern, not
+  part of the library surface.
+- Publishing metadata lives in `gradle.properties` (`GROUP`, `VERSION_NAME`)
+  and each library's `build.gradle.kts` (`mavenPublishing { pom { … } }`).
+- Any change to `:crdt` or `:sync` public API must be followed by
+  `./gradlew :<module>:apiDump` and a committed `api/` diff — `apiCheck` runs
+  in `build` and will fail otherwise.
 
-1. User action → `TodoViewModel` → `TodoRepository.addTodo()`
-2. `OfflineFirstTodoRepository` updates local CRDT state, persists to JSON file, buffers delta
-3. `SyncEngine` pushes delta to server via WebSocket
-4. Server (`SyncRoutes`) merges into `ServerStateStore`, broadcasts to other clients
-5. Remote clients receive `PullResponse`, merge delta into local state
+## `design.pen`
 
-### Persistence (`shared/.../persistence/`)
-
-- `LocalStorage` interface with `JsonFileStorage` implementation — serializes full `TodoListCrdt` to a JSON file.
-- `FileIO` has expect/actual declarations per platform (JVM, Android, iOS) for file read/write.
-
-### DI
-
-Manual DI via `AppModule` singleton in `composeApp`. No framework (no Koin/Dagger).
-
-### UI (`composeApp/.../ui/`)
-
-Compose Multiplatform with Material 3. Screens: `TaskListScreen`, `TaskDetailScreen`, `PeersScreen`. Single `TodoViewModel` backed by repository.
-
-## Key Constants
-
-- Server port: `8080` (defined in `shared/.../Constants.kt`)
-- Server host: `localhost` by default (configurable in `AppModule.initialize()`)
-
-## Design File
-
-`design.pen` at root is a Pencil design file — read only via Pencil MCP tools, not with standard file tools.
+Pencil design file at the repo root. Read only via the Pencil MCP tools, not
+standard file tools.

@@ -1,0 +1,113 @@
+public final class com/doppio/syncdo/sync/SyncEngine {
+	public fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
+	public synthetic fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getSyncStatus ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun pushPendingDelta (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun start ()V
+	public final fun stop ()V
+}
+
+public abstract interface class com/doppio/syncdo/sync/SyncMessage {
+	public static final field Companion Lcom/doppio/syncdo/sync/SyncMessage$Companion;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PullRequest : com/doppio/syncdo/sync/SyncMessage {
+	public static final field Companion Lcom/doppio/syncdo/sync/SyncMessage$PullRequest$Companion;
+	public fun <init> (Lcom/doppio/syncdo/crdt/VectorClock;Ljava/lang/String;)V
+	public final fun component1 ()Lcom/doppio/syncdo/crdt/VectorClock;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Lcom/doppio/syncdo/crdt/VectorClock;Ljava/lang/String;)Lcom/doppio/syncdo/sync/SyncMessage$PullRequest;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/sync/SyncMessage$PullRequest;Lcom/doppio/syncdo/crdt/VectorClock;Ljava/lang/String;ILjava/lang/Object;)Lcom/doppio/syncdo/sync/SyncMessage$PullRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
+	public final fun getNodeId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/sync/SyncMessage$PullRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/sync/SyncMessage$PullRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/sync/SyncMessage$PullRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PullRequest$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PullResponse : com/doppio/syncdo/sync/SyncMessage {
+	public static final field Companion Lcom/doppio/syncdo/sync/SyncMessage$PullResponse$Companion;
+	public fun <init> (Ljava/lang/Object;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun copy (Ljava/lang/Object;)Lcom/doppio/syncdo/sync/SyncMessage$PullResponse;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/sync/SyncMessage$PullResponse;Ljava/lang/Object;ILjava/lang/Object;)Lcom/doppio/syncdo/sync/SyncMessage$PullResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDelta ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/sync/SyncMessage$PullResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/sync/SyncMessage$PullResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/sync/SyncMessage$PullResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PullResponse$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PushDelta : com/doppio/syncdo/sync/SyncMessage {
+	public static final field Companion Lcom/doppio/syncdo/sync/SyncMessage$PushDelta$Companion;
+	public fun <init> (Ljava/lang/Object;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/Object;Ljava/lang/String;)Lcom/doppio/syncdo/sync/SyncMessage$PushDelta;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/sync/SyncMessage$PushDelta;Ljava/lang/Object;Ljava/lang/String;ILjava/lang/Object;)Lcom/doppio/syncdo/sync/SyncMessage$PushDelta;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDelta ()Ljava/lang/Object;
+	public final fun getNodeId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/sync/SyncMessage$PushDelta$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/sync/SyncMessage$PushDelta;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/sync/SyncMessage$PushDelta;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncMessage$PushDelta$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/sync/SyncStatus : java/lang/Enum {
+	public static final field Error Lcom/doppio/syncdo/sync/SyncStatus;
+	public static final field Offline Lcom/doppio/syncdo/sync/SyncStatus;
+	public static final field PendingChanges Lcom/doppio/syncdo/sync/SyncStatus;
+	public static final field Synced Lcom/doppio/syncdo/sync/SyncStatus;
+	public static final field Syncing Lcom/doppio/syncdo/sync/SyncStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/doppio/syncdo/sync/SyncStatus;
+	public static fun values ()[Lcom/doppio/syncdo/sync/SyncStatus;
+}
+

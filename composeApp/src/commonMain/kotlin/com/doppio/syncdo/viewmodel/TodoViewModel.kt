@@ -2,7 +2,7 @@ package com.doppio.syncdo.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.doppio.syncdo.model.SyncStatus
+import com.doppio.syncdo.sync.SyncStatus
 import com.doppio.syncdo.model.TodoItem
 import com.doppio.syncdo.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableStateFlow

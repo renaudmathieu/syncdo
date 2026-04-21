@@ -6,37 +6,36 @@ import kotlinx.serialization.Serializable
  * Aggregate CRDT for the entire todo list.
  * Composes an OR-Set (for membership) with a map of TodoItemCrdt (for item data).
  *
- * The advantage of CRDTs is to define at what granularity and on what problems LWW applies,
- * and to guarantee convergence even when several structures are composed together.
+ * Each field is handled by a generic `:crdt` operator:
+ * - [itemIds] merges via [OrSet.merge];
+ * - [items] merges via [mergeStates] ("map of CRDTs is a CRDT");
+ * - [clock] merges via [VectorClock.merge] (pointwise max).
+ *
+ * Composition of join-semilattices is a join-semilattice, so the aggregate
+ * converges for free.
  */
 @Serializable
 data class TodoListCrdt(
     val itemIds: OrSet<String> = OrSet(),
     val items: Map<String, TodoItemCrdt> = emptyMap(),
-    val clock: VectorClock = VectorClock()
-) : CrdtState<TodoListCrdt> {
+    override val clock: VectorClock = VectorClock()
+) : DeltaState<TodoListCrdt, TodoListDelta> {
 
     override fun merge(other: TodoListCrdt): TodoListCrdt {
         val mergedIds = itemIds.merge(other.itemIds)
         val activeIds = mergedIds.elements()
-
-        // Merge item data for all active IDs
-        val mergedItems = mutableMapOf<String, TodoItemCrdt>()
-        for (id in activeIds) {
-            val thisItem = items[id]
-            val otherItem = other.items[id]
-            mergedItems[id] = when {
-                thisItem != null && otherItem != null -> thisItem.merge(otherItem)
-                thisItem != null -> thisItem
-                otherItem != null -> otherItem
-                else -> continue // ID in set but no data — should not happen
-            }
-        }
-
         return TodoListCrdt(
             itemIds = mergedIds,
-            items = mergedItems,
-            clock = clock.merge(other.clock)
+            items = items.mergeStates(other.items).filterKeys { it in activeIds },
+            clock = clock.merge(other.clock),
         )
     }
+
+    override fun applyDelta(delta: TodoListDelta): TodoListCrdt = merge(
+        TodoListCrdt(
+            itemIds = OrSet<String>().applyDelta(delta.membership),
+            items = delta.items,
+            clock = delta.clock,
+        )
+    )
 }

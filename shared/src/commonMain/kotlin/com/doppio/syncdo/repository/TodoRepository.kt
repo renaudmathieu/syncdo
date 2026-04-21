@@ -1,7 +1,7 @@
 package com.doppio.syncdo.repository
 
-import com.doppio.syncdo.model.SyncStatus
 import com.doppio.syncdo.model.TodoItem
+import com.doppio.syncdo.sync.SyncStatus
 import kotlinx.coroutines.flow.StateFlow
 
 interface TodoRepository {

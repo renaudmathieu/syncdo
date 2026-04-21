@@ -143,12 +143,16 @@ A partial diff containing only what changed:
 
 ```kotlin
 data class TodoListDelta(
-    val addedOrUpdatedItems: Map<String, TodoItemCrdt>,
-    val removedItemTags: Map<String, Set<UniqueTag>>,
-    val addedItemTags: Map<String, Set<UniqueTag>>,
-    val clock: VectorClock
+    val items: Map<String, TodoItemCrdt>,  // added or updated items
+    val membership: OrSetDelta<String>,    // add/remove tags for item IDs
+    val clock: VectorClock,
 )
 ```
+
+`OrSetDelta<E>` lives in `:crdt` — it's the generic patch shape produced by
+`OrSet.addWithDelta` / `removeWithDelta`, composable via `merge`. `TodoListDelta`
+merges field-by-field using the `:crdt` operators: `Map.mergeStates` for the
+items map, `OrSetDelta.merge` for membership, `VectorClock.merge` for the clock.
 
 Deltas are themselves mergeable — two deltas can be combined into one, which is important for batching.
 

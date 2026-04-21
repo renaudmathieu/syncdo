@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.doppio.syncdo.model.SyncStatus
+import com.doppio.syncdo.sync.SyncStatus
 import com.doppio.syncdo.model.TodoItem
 import com.doppio.syncdo.ui.components.SyncStatusIndicator
 import com.doppio.syncdo.ui.components.TodoItemRow

@@ -1,0 +1,199 @@
+public abstract interface class com/doppio/syncdo/crdt/CrdtState {
+	public abstract fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
+}
+
+public abstract interface class com/doppio/syncdo/crdt/Delta {
+	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
+	public abstract fun isEmpty ()Z
+	public abstract fun merge (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/Delta;
+}
+
+public final class com/doppio/syncdo/crdt/DeltaBuffer {
+	public fun <init> ()V
+	public final fun flush ()Lcom/doppio/syncdo/crdt/Delta;
+	public final fun record (Lcom/doppio/syncdo/crdt/Delta;)V
+	public final fun restore (Lcom/doppio/syncdo/crdt/Delta;)V
+}
+
+public abstract interface class com/doppio/syncdo/crdt/DeltaState : com/doppio/syncdo/crdt/CrdtState {
+	public abstract fun applyDelta (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/DeltaState;
+	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
+}
+
+public final class com/doppio/syncdo/crdt/LwwRegister : com/doppio/syncdo/crdt/CrdtState {
+	public static final field Companion Lcom/doppio/syncdo/crdt/LwwRegister$Companion;
+	public fun <init> (Ljava/lang/Object;Lkotlin/time/Instant;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Lkotlin/time/Instant;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/Object;Lkotlin/time/Instant;Ljava/lang/String;)Lcom/doppio/syncdo/crdt/LwwRegister;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/LwwRegister;Ljava/lang/Object;Lkotlin/time/Instant;Ljava/lang/String;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/LwwRegister;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodeId ()Ljava/lang/String;
+	public final fun getTimestamp ()Lkotlin/time/Instant;
+	public final fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public synthetic fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
+	public fun merge (Lcom/doppio/syncdo/crdt/LwwRegister;)Lcom/doppio/syncdo/crdt/LwwRegister;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/crdt/LwwRegister$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/LwwRegister;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/LwwRegister;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/LwwRegister$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/MapMergeKt {
+	public static final fun mergeStates (Ljava/util/Map;Ljava/util/Map;)Ljava/util/Map;
+	public static final fun mergeValues (Ljava/util/Map;Ljava/util/Map;Lkotlin/jvm/functions/Function2;)Ljava/util/Map;
+	public static final fun unionValues (Ljava/util/Map;Ljava/util/Map;)Ljava/util/Map;
+}
+
+public final class com/doppio/syncdo/crdt/OrSet : com/doppio/syncdo/crdt/CrdtState {
+	public static final field Companion Lcom/doppio/syncdo/crdt/OrSet$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun add (Ljava/lang/Object;Ljava/lang/String;J)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun addWithDelta (Ljava/lang/Object;Ljava/lang/String;J)Lkotlin/Pair;
+	public final fun applyDelta (Lcom/doppio/syncdo/crdt/OrSetDelta;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun contains (Ljava/lang/Object;)Z
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;)Lcom/doppio/syncdo/crdt/OrSet;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/OrSet;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun elements ()Ljava/util/Set;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntries ()Ljava/util/Map;
+	public final fun getTombstones ()Ljava/util/Map;
+	public fun hashCode ()I
+	public synthetic fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
+	public fun merge (Lcom/doppio/syncdo/crdt/OrSet;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun remove (Ljava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun removeWithDelta (Ljava/lang/Object;)Lkotlin/Pair;
+	public final fun toDelta ()Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/crdt/OrSet$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/OrSet;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/OrSet;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/OrSet$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/OrSetDelta {
+	public static final field Companion Lcom/doppio/syncdo/crdt/OrSetDelta$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;)Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/OrSetDelta;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAddedTags ()Ljava/util/Map;
+	public final fun getRemovedTags ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun isEmpty ()Z
+	public final fun merge (Lcom/doppio/syncdo/crdt/OrSetDelta;)Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/crdt/OrSetDelta$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/OrSetDelta;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/OrSetDelta$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/UniqueTag {
+	public static final field Companion Lcom/doppio/syncdo/crdt/UniqueTag$Companion;
+	public fun <init> (Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun copy (Ljava/lang/String;J)Lcom/doppio/syncdo/crdt/UniqueTag;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/UniqueTag;Ljava/lang/String;JILjava/lang/Object;)Lcom/doppio/syncdo/crdt/UniqueTag;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCounter ()J
+	public final fun getNodeId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/crdt/UniqueTag$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/doppio/syncdo/crdt/UniqueTag$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/UniqueTag;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/UniqueTag;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/UniqueTag$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/VectorClock : com/doppio/syncdo/crdt/CrdtState {
+	public static final field Companion Lcom/doppio/syncdo/crdt/VectorClock$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;)Lcom/doppio/syncdo/crdt/VectorClock;
+	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/VectorClock;Ljava/util/Map;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/VectorClock;
+	public final fun dominates (Lcom/doppio/syncdo/crdt/VectorClock;)Z
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun get (Ljava/lang/String;)J
+	public final fun getEntries ()Ljava/util/Map;
+	public fun hashCode ()I
+	public final fun increment (Ljava/lang/String;)Lcom/doppio/syncdo/crdt/VectorClock;
+	public final fun isLessThanOrEqual (Lcom/doppio/syncdo/crdt/VectorClock;)Z
+	public synthetic fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
+	public fun merge (Lcom/doppio/syncdo/crdt/VectorClock;)Lcom/doppio/syncdo/crdt/VectorClock;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/doppio/syncdo/crdt/VectorClock$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/doppio/syncdo/crdt/VectorClock$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/VectorClock;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/VectorClock;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/doppio/syncdo/crdt/VectorClock$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

@@ -12,7 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.doppio.syncdo.model.SyncStatus
+import com.doppio.syncdo.sync.SyncStatus
 import com.doppio.syncdo.ui.theme.SyncDoStatusColors
 
 @Composable

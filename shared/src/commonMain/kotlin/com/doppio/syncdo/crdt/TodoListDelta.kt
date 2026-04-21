@@ -4,39 +4,26 @@ import kotlinx.serialization.Serializable
 
 /**
  * A delta representing changes to the TodoList CRDT.
- * Contains only the items that were added, updated, or removed since last sync.
+ *
+ * Composes three independent pieces — each merged via its own operator from
+ * `:crdt`:
+ * - [items]: a map of [TodoItemCrdt] updates, merged field-by-field via
+ *   [mergeStates] (maps of CRDTs are themselves CRDTs).
+ * - [membership]: an [OrSetDelta] carrying add/remove tags for item IDs.
+ * - [clock]: the outer causal clock shared by the whole delta.
  */
 @Serializable
 data class TodoListDelta(
-    val addedOrUpdatedItems: Map<String, TodoItemCrdt> = emptyMap(),
-    val removedItemTags: Map<String, Set<UniqueTag>> = emptyMap(),
-    val addedItemTags: Map<String, Set<UniqueTag>> = emptyMap(),
-    val clock: VectorClock = VectorClock()
-) {
-    fun isEmpty(): Boolean =
-        addedOrUpdatedItems.isEmpty() && removedItemTags.isEmpty() && addedItemTags.isEmpty()
+    val items: Map<String, TodoItemCrdt> = emptyMap(),
+    val membership: OrSetDelta<String> = OrSetDelta(),
+    override val clock: VectorClock = VectorClock()
+) : Delta<TodoListDelta> {
 
-    /**
-     * Merge two deltas into one (accumulate changes).
-     */
-    fun merge(other: TodoListDelta): TodoListDelta {
-        val mergedItems = (addedOrUpdatedItems.keys + other.addedOrUpdatedItems.keys).associateWith { id ->
-            val a = addedOrUpdatedItems[id]
-            val b = other.addedOrUpdatedItems[id]
-            when {
-                a != null && b != null -> a.merge(b)
-                a != null -> a
-                else -> b!!
-            }
-        }
-        val mergedRemovedTags = (removedItemTags.keys + other.removedItemTags.keys).associateWith { id ->
-            removedItemTags.getOrElse(id) { emptySet() } +
-                other.removedItemTags.getOrElse(id) { emptySet() }
-        }
-        val mergedAddedTags = (addedItemTags.keys + other.addedItemTags.keys).associateWith { id ->
-            addedItemTags.getOrElse(id) { emptySet() } +
-                other.addedItemTags.getOrElse(id) { emptySet() }
-        }
-        return TodoListDelta(mergedItems, mergedRemovedTags, mergedAddedTags, clock.merge(other.clock))
-    }
+    override fun isEmpty(): Boolean = items.isEmpty() && membership.isEmpty()
+
+    override fun merge(other: TodoListDelta): TodoListDelta = TodoListDelta(
+        items = items.mergeStates(other.items),
+        membership = membership.merge(other.membership),
+        clock = clock.merge(other.clock),
+    )
 }
