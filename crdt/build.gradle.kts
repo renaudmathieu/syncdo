@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
     alias(libs.plugins.vanniktechMavenPublish)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -52,7 +53,7 @@ android {
 }
 
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO CRDT")

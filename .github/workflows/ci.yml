@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu covers JVM + Android. Fast feedback on most PRs.
+          - os: ubuntu-latest
+            tasks: ":crdt:jvmTest :crdt:testDebugUnitTest :sync:jvmTest :sync:testDebugUnitTest :crdt:apiCheck :sync:apiCheck"
+          # macOS covers the iOS simulator targets, which the other runner can't build.
+          - os: macos-14
+            tasks: ":crdt:iosSimulatorArm64Test :sync:iosSimulatorArm64Test"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Run ${{ matrix.os }} tasks
+        run: ./gradlew ${{ matrix.tasks }} --stacktrace
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.os }}
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 7

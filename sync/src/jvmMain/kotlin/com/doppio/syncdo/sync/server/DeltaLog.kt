@@ -9,11 +9,13 @@ import com.doppio.syncdo.crdt.VectorClock
  */
 internal class DeltaLog<D : Delta<D>>(private val maxSize: Int = 100) {
     private val entries = ArrayDeque<Pair<VectorClock, D>>()
+    private var evictedUpTo: VectorClock = VectorClock()
 
     fun append(delta: D) {
         entries.addLast(delta.clock to delta)
         while (entries.size > maxSize) {
-            entries.removeFirst()
+            val (evictedClock, _) = entries.removeFirst()
+            evictedUpTo = evictedUpTo.merge(evictedClock)
         }
     }
 
@@ -23,6 +25,7 @@ internal class DeltaLog<D : Delta<D>>(private val maxSize: Int = 100) {
      */
     fun getDeltasSince(clientClock: VectorClock): D? {
         if (entries.isEmpty()) return null
+        if (!evictedUpTo.isLessThanOrEqual(clientClock)) return null
         val missed = entries
             .filter { (deltaClock, _) -> !deltaClock.isLessThanOrEqual(clientClock) }
             .map { it.second }

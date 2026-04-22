@@ -4,6 +4,18 @@ import kotlinx.serialization.Serializable
 
 typealias NodeId = String
 
+/**
+ * Causality tracking via a map of per-node monotonic counters.
+ *
+ * Each node increments its own counter on every local event; when nodes exchange state,
+ * their clocks are merged component-wise (max per node). Comparing two clocks answers
+ * "did A happen before B, after B, or concurrently with B?" — which [DeltaState]
+ * implementations use to decide when a remote change supersedes a local one and when
+ * the two must be merged.
+ *
+ * The empty clock ([VectorClock]`()`) is the identity: it is [isLessThanOrEqual] to any
+ * other clock and merges to the other clock unchanged.
+ */
 @Serializable
 data class VectorClock(
     val entries: Map<NodeId, Long> = emptyMap()

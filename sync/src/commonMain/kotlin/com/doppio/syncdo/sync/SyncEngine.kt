@@ -30,6 +30,10 @@ import kotlinx.serialization.json.Json
  * for: buffering local mutations ([getPendingDelta]), restoring them on failure
  * ([restorePendingDelta]), applying remote deltas ([onRemoteDelta]), and reporting the
  * local vector clock ([getLocalClock]).
+ *
+ * Transport errors (connect failures, send failures) are surfaced through the optional
+ * [onError] callback. Defaults to a no-op so library users can opt in to logging without
+ * the engine ever writing to stdout.
  */
 class SyncEngine<D : Delta<D>>(
     deltaSerializer: KSerializer<D>,
@@ -42,6 +46,7 @@ class SyncEngine<D : Delta<D>>(
     private val restorePendingDelta: (D) -> Unit,
     private val getLocalClock: () -> VectorClock,
     private val path: String = "/sync",
+    private val onError: (Throwable) -> Unit = {},
 ) {
     private val messageSerializer = SyncMessage.serializer(deltaSerializer)
     private val json = Json { ignoreUnknownKeys = true }
@@ -82,7 +87,7 @@ class SyncEngine<D : Delta<D>>(
                         }
                     }
                 } catch (e: Exception) {
-                    println("SyncEngine: connection error: ${e.message}")
+                    onError(e)
                     syncStatus.update { SyncStatus.Offline }
                 }
                 session = null
@@ -121,7 +126,7 @@ class SyncEngine<D : Delta<D>>(
             val message: SyncMessage<D> = SyncMessage.PushDelta(delta = delta, nodeId = nodeId)
             ws.send(Frame.Text(json.encodeToString(messageSerializer, message)))
         } catch (e: Exception) {
-            println("SyncEngine: failed to push delta: ${e.message}")
+            onError(e)
             restorePendingDelta(delta)
             syncStatus.update { SyncStatus.PendingChanges }
         }

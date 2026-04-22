@@ -3,6 +3,19 @@ package com.doppio.syncdo.crdt
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
+/**
+ * Last-Write-Wins register: a single [value] tagged with the [timestamp] of the write and
+ * the [nodeId] that produced it.
+ *
+ * Merge picks the entry with the greater timestamp; ties are broken by [nodeId] ordering
+ * (lexicographic) so convergence is deterministic across peers. Because ties use nodeId,
+ * two concurrent writes with identical timestamps from different nodes still converge to
+ * the same winner everywhere without coordination.
+ *
+ * Suitable for fields where "most recent write wins" is the intended semantics — titles,
+ * flags, single-valued settings. For multi-value or causal data, prefer [OrSet] or a
+ * composite [DeltaState].
+ */
 @Serializable
 data class LwwRegister<T>(
     val value: T,

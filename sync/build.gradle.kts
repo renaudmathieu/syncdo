@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
     alias(libs.plugins.vanniktechMavenPublish)
+    alias(libs.plugins.dokka)
 }
 
 kotlin {
@@ -54,6 +55,9 @@ kotlin {
             api(libs.ktor.serverCore)
             api(libs.ktor.server.websockets)
         }
+        jvmTest.dependencies {
+            implementation(libs.ktor.serverNetty)
+        }
     }
 }
 
@@ -70,7 +74,7 @@ android {
 }
 
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO Sync")
