@@ -10,12 +10,15 @@ import com.doppio.syncdo.repository.OfflineFirstTodoRepository
 import com.doppio.syncdo.repository.TodoRepository
 import com.doppio.syncdo.sync.NodeIdProvider
 import com.doppio.syncdo.sync.SyncEngine
+import com.doppio.syncdo.sync.SyncLogLevel
+import com.doppio.syncdo.sync.SyncLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 object AppModule {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var _repository: OfflineFirstTodoRepository
     private var _syncEngine: SyncEngine<TodoListDelta>? = null
     private var initialized = false
@@ -29,7 +32,10 @@ object AppModule {
         val storagePath = getStoragePath()
         val nodeIdProvider = NodeIdProvider(storagePath)
         val nodeId = nodeIdProvider.getNodeId()
-        val storage: LocalStorage = JsonFileStorage(storagePath)
+        val storage: LocalStorage = JsonFileStorage(
+            basePath = storagePath,
+            logger = { msg, err -> println("SyncDO: $msg ${err?.message.orEmpty()}") },
+        )
 
         // Create repository once
         val initialState = storage.load() ?: TodoListCrdt()
@@ -51,6 +57,9 @@ object AppModule {
             getPendingDelta = { _repository.getPendingDelta() },
             restorePendingDelta = { delta -> _repository.restorePendingDelta(delta) },
             getLocalClock = { _repository.getLocalClock() },
+            logger = SyncLogger { level, msg, err ->
+                if (level >= SyncLogLevel.Warn) println("SyncDO[$level] $msg ${err?.message.orEmpty()}")
+            },
         )
 
         // Attach sync engine to repository (no second instance)
@@ -63,7 +72,21 @@ object AppModule {
         _syncEngine?.start()
     }
 
-    fun stopSync() {
+    suspend fun stopSync() {
         _syncEngine?.stop()
+    }
+
+    /**
+     * Releases the sync engine, cancels the module scope, and resets state so
+     * [initialize] can be called again on a fresh app session. Safe to call
+     * even if the module was never initialized.
+     */
+    suspend fun shutdown() {
+        if (!initialized) return
+        _syncEngine?.stop()
+        _syncEngine = null
+        scope.cancel()
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        initialized = false
     }
 }

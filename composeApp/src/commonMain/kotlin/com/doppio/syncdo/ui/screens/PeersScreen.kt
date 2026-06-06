@@ -85,43 +85,6 @@ fun PeersScreen(
             }
         }
 
-        // Add a Peer section
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = "Add a Peer",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { /* TODO: Enter code flow */ },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Text("# Enter Code", fontSize = 14.sp)
-                }
-                OutlinedButton(
-                    onClick = { /* TODO: QR code flow */ },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Text("Scan QR", fontSize = 14.sp)
-                }
-            }
-        }
-
         // Connected Devices placeholder
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(

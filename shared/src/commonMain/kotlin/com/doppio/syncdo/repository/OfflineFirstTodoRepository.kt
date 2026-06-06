@@ -118,13 +118,13 @@ class OfflineFirstTodoRepository(
         }
     }
 
-    fun getPendingDelta(): TodoListDelta? = deltaBuffer.flush()
+    suspend fun getPendingDelta(): TodoListDelta? = deltaBuffer.flush()
 
-    fun restorePendingDelta(delta: TodoListDelta) = deltaBuffer.restore(delta)
+    suspend fun restorePendingDelta(delta: TodoListDelta) = deltaBuffer.restore(delta)
 
     fun getLocalClock(): VectorClock = crdtState.value.clock
 
-    private suspend fun mutate(block: (TodoListCrdt) -> TodoListCrdt) {
+    private suspend fun mutate(block: suspend (TodoListCrdt) -> TodoListCrdt) {
         mutex.withLock {
             crdtState.value = block(crdtState.value)
             storage.save(crdtState.value)

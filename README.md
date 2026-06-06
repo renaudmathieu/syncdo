@@ -2,6 +2,8 @@
 
 Kotlin Multiplatform libraries for CRDT-based sync, plus a collaborative todo app demonstrating them.
 
+Licensed under [Apache 2.0](LICENSE).
+
 ## Modules
 
 ### Published libraries
@@ -67,10 +69,23 @@ emulators for the sync demo.
 ./gradlew :server:run                  # Port 8080
 ./gradlew :composeApp:run              # Desktop
 ./gradlew :composeApp:assembleDebug    # Android APK
-# iOS: open iosApp/ in Xcode
+# iOS: open iosApp/iosApp.xcodeproj in Xcode → run the iosApp scheme.
 ```
 
-Enter the server's LAN IP in each client (or `localhost` if on the same host).
+Server config (env vars):
+
+- `SYNCDO_PORT` — bind port (default `8080`).
+- `SYNCDO_STATE_DIR` — directory for the persisted JSON state (default `./data`).
+
+On first launch each client asks for the server host. Enter:
+
+- `localhost` if the server runs on the same machine as a desktop client.
+- `10.0.2.2` from an **Android emulator** to reach the host machine.
+- Your machine's LAN IP (e.g. `192.168.1.42`) from an iOS simulator, physical
+  device, or any other machine.
+
+The host is persisted under the client's storage path, so subsequent launches
+skip the prompt.
 
 ### Sync demo scenarios
 

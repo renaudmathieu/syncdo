@@ -30,7 +30,16 @@ dependencies {
 | `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. |
 | `Delta<D>` | Partial change that can be merged + shipped over the wire. |
 | `DeltaState<S, D>` | CRDT state that supports delta-based sync via `applyDelta(delta)`. |
-| `DeltaBuffer<D>` | Accumulates local mutations until they can be pushed. |
+| `DeltaBuffer<D>` | Accumulates local mutations until they can be pushed (thread-safe via an internal mutex; methods are `suspend`). |
+
+### When to use which
+
+| You're modelling… | Reach for | Why |
+|---|---|---|
+| A single mutable field (title, flag, count) | `LwwRegister<T>` | Last write wins, deterministic tie-break by node ID. |
+| Set membership (tags, attendees, item IDs) | `OrSet<E>` | Concurrent add + remove → add survives, matching user intuition. |
+| Causal ordering of a stream of events | `VectorClock` | Per-node monotonic counters; cheap to merge (pointwise max). |
+| A composite document with several of the above | Compose them in a `@Serializable data class` and implement `merge` field-wise. | Composition of join-semilattices is itself a join-semilattice, so convergence is free. See `:shared/.../TodoListCrdt` for a worked example. |
 
 ## Quickstart — build your own CRDT aggregate
 

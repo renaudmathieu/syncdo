@@ -1,10 +1,29 @@
 public final class com/doppio/syncdo/sync/SyncEngine {
-	public fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;)V
-	public synthetic fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lcom/doppio/syncdo/sync/SyncLogger;)V
+	public synthetic fun <init> (Lkotlinx/serialization/KSerializer;Ljava/lang/String;ILjava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lcom/doppio/syncdo/sync/SyncLogger;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getSyncStatus ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun pushPendingDelta (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun start ()V
-	public final fun stop ()V
+	public final fun stop (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/doppio/syncdo/sync/SyncLogLevel : java/lang/Enum {
+	public static final field Debug Lcom/doppio/syncdo/sync/SyncLogLevel;
+	public static final field Error Lcom/doppio/syncdo/sync/SyncLogLevel;
+	public static final field Info Lcom/doppio/syncdo/sync/SyncLogLevel;
+	public static final field Warn Lcom/doppio/syncdo/sync/SyncLogLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/doppio/syncdo/sync/SyncLogLevel;
+	public static fun values ()[Lcom/doppio/syncdo/sync/SyncLogLevel;
+}
+
+public abstract interface class com/doppio/syncdo/sync/SyncLogger {
+	public static final field Companion Lcom/doppio/syncdo/sync/SyncLogger$Companion;
+	public abstract fun log (Lcom/doppio/syncdo/sync/SyncLogLevel;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
+public final class com/doppio/syncdo/sync/SyncLogger$Companion {
+	public final fun getNoop ()Lcom/doppio/syncdo/sync/SyncLogger;
 }
 
 public abstract interface class com/doppio/syncdo/sync/SyncMessage {

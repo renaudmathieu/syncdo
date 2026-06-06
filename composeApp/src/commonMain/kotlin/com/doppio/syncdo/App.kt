@@ -23,6 +23,7 @@ import com.doppio.syncdo.ui.screens.TaskDetailScreen
 import com.doppio.syncdo.ui.screens.TaskListScreen
 import com.doppio.syncdo.ui.theme.SyncDoTheme
 import com.doppio.syncdo.viewmodel.TodoViewModel
+import kotlinx.coroutines.launch
 
 private enum class ConnectionState { INPUT, CONNECTING, READY }
 
@@ -30,7 +31,7 @@ private const val SERVER_HOST_FILE = "server-host.txt"
 
 @Composable
 fun App() {
-    var serverHost by remember { mutableStateOf("172.16.110.8") }
+    var serverHost by remember { mutableStateOf("") }
     var connectionState by remember { mutableStateOf(ConnectionState.INPUT) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -142,7 +143,7 @@ private fun ConnectionScreen(
                 value = serverHost,
                 onValueChange = onServerHostChange,
                 label = { Text("Server Host") },
-                placeholder = { Text("172.16.110.8") },
+                placeholder = { Text("localhost or 192.168.1.42") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
@@ -201,6 +202,7 @@ private fun AppContent(
     viewModel: TodoViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     var syncEnabled by remember { mutableStateOf(false) }
     var showDetailSheet by remember { mutableStateOf(false) }
@@ -214,7 +216,7 @@ private fun AppContent(
         syncEnabled = syncEnabled,
         onToggleSync = { enabled ->
             syncEnabled = enabled
-            if (enabled) AppModule.startSync() else AppModule.stopSync()
+            if (enabled) AppModule.startSync() else scope.launch { AppModule.stopSync() }
         },
         onAddTodo = viewModel::addTodo,
         onToggleTodo = viewModel::toggleCompleted,
@@ -236,6 +238,7 @@ private fun AppContent(
         ) {
             TaskDetailScreen(
                 item = uiState.selectedTodo,
+                syncStatus = uiState.syncStatus,
                 onUpdateTitle = { title ->
                     uiState.selectedTodoId?.let { viewModel.updateTitle(it, title) }
                 },

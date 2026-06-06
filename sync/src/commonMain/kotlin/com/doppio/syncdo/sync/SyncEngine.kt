@@ -12,6 +12,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +27,21 @@ import kotlinx.serialization.json.Json
  * connect, pushes local mutations as they are buffered, and applies server broadcasts.
  *
  * Generic over the application's [Delta] type. Construct with the `KSerializer` for your
- * delta (typically `MyDelta.serializer()`). The repository / domain layer is responsible
- * for: buffering local mutations ([getPendingDelta]), restoring them on failure
- * ([restorePendingDelta]), applying remote deltas ([onRemoteDelta]), and reporting the
- * local vector clock ([getLocalClock]).
+ * delta (typically `MyDelta.serializer()`).
+ *
+ * **Callback contract:**
+ * - [onRemoteDelta] — invoked for every incoming non-empty delta. Exceptions here cause
+ *   the connection to be torn down and reconnected with exponential backoff; the engine
+ *   does **not** retry the delta itself, so callers should ensure their merge is
+ *   idempotent under repeated delivery.
+ * - [getPendingDelta] — called when a connection is established or after a local mutation.
+ *   Should atomically read-and-clear the application's outbound buffer (returning `null`
+ *   if nothing is pending). Suspending so callers can use a mutex.
+ * - [restorePendingDelta] — called only if a [getPendingDelta]-returned delta failed to
+ *   send. Must put the delta back at the head of the buffer; the engine will retry on
+ *   the next successful connection.
+ * - [getLocalClock] — read on connect to build the initial [SyncMessage.PullRequest].
+ *   Must reflect every delta the application has already applied locally.
  */
 class SyncEngine<D : Delta<D>>(
     deltaSerializer: KSerializer<D>,
@@ -38,10 +50,11 @@ class SyncEngine<D : Delta<D>>(
     private val nodeId: NodeId,
     private val scope: CoroutineScope,
     private val onRemoteDelta: suspend (D) -> Unit,
-    private val getPendingDelta: () -> D?,
-    private val restorePendingDelta: (D) -> Unit,
+    private val getPendingDelta: suspend () -> D?,
+    private val restorePendingDelta: suspend (D) -> Unit,
     private val getLocalClock: () -> VectorClock,
     private val path: String = "/sync",
+    private val logger: SyncLogger = SyncLogger.Noop,
 ) {
     private val messageSerializer = SyncMessage.serializer(deltaSerializer)
     private val json = Json { ignoreUnknownKeys = true }
@@ -82,7 +95,7 @@ class SyncEngine<D : Delta<D>>(
                         }
                     }
                 } catch (e: Exception) {
-                    println("SyncEngine: connection error: ${e.message}")
+                    logger.log(SyncLogLevel.Warn, "SyncEngine: connection error: ${e.message}", e)
                     syncStatus.update { SyncStatus.Offline }
                 }
                 session = null
@@ -121,16 +134,16 @@ class SyncEngine<D : Delta<D>>(
             val message: SyncMessage<D> = SyncMessage.PushDelta(delta = delta, nodeId = nodeId)
             ws.send(Frame.Text(json.encodeToString(messageSerializer, message)))
         } catch (e: Exception) {
-            println("SyncEngine: failed to push delta: ${e.message}")
+            logger.log(SyncLogLevel.Warn, "SyncEngine: failed to push delta: ${e.message}", e)
             restorePendingDelta(delta)
             syncStatus.update { SyncStatus.PendingChanges }
         }
     }
 
-    fun stop() {
-        connectJob?.cancel()
+    suspend fun stop() {
+        connectJob?.cancelAndJoin()
         connectJob = null
-        scope.launch { session?.close() }
+        runCatching { session?.close() }
         session = null
         syncStatus.update { SyncStatus.Offline }
     }

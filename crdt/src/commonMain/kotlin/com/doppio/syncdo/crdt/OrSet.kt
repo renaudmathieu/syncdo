@@ -54,12 +54,21 @@ data class OrSet<E>(
         return next to delta
     }
 
+    /**
+     * True if at least one add-tag for [element] has not been tombstoned by a
+     * subsequent remove — i.e. the element is "live" under add-wins semantics.
+     */
     fun contains(element: E): Boolean {
         val activeTags = entries.getOrElse(element) { emptySet() }
         val removedTags = tombstones.getOrElse(element) { emptySet() }
         return (activeTags - removedTags).isNotEmpty()
     }
 
+    /**
+     * Currently live elements. Re-evaluated on each call: tombstones aren't
+     * removed from [entries] (they're kept for causal merge), so this filters
+     * them out lazily.
+     */
     fun elements(): Set<E> = entries.keys.filter { contains(it) }.toSet()
 
     override fun merge(other: OrSet<E>): OrSet<E> {

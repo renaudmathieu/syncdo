@@ -18,11 +18,16 @@ import kotlinx.coroutines.sync.withLock
  *   client's clock is unknown (first connect) or too far behind the bounded delta log.
  * @param maxLogSize how many recent deltas to retain for incremental catch-up. Clients
  *   behind this window receive a full-state delta instead.
+ * @param onStateChanged optional hook invoked with the new state after every successful
+ *   merge. Runs while the merge mutex is held, so prefer fast operations (snapshots,
+ *   in-memory writes, or `launch`-and-return). Use for persistence, metrics, or audit
+ *   logs. Exceptions propagate to the caller of [mergeDelta].
  */
 class SyncServer<S : DeltaState<S, D>, D : Delta<D>>(
     initialState: () -> S,
     private val fullStateAsDelta: (S) -> D,
     maxLogSize: Int = 100,
+    private val onStateChanged: suspend (S) -> Unit = {},
 ) {
     private val mutex = Mutex()
     private var state: S = initialState()
@@ -32,6 +37,7 @@ class SyncServer<S : DeltaState<S, D>, D : Delta<D>>(
     suspend fun mergeDelta(delta: D): D = mutex.withLock {
         state = state.applyDelta(delta)
         deltaLog.append(delta)
+        onStateChanged(state)
         delta
     }
 

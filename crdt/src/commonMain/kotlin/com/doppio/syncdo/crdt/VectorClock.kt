@@ -25,8 +25,10 @@ data class VectorClock(
     }
 
     /**
-     * Returns true if this clock dominates (is strictly greater than) the other.
-     * Every entry in this >= every entry in other, with at least one strictly greater.
+     * True if this clock strictly happened-after [other] (every entry >=, with
+     * at least one strictly >). Use to decide whether an event causally
+     * follows another. For "neither dominates the other" → events are
+     * concurrent; resolve via CRDT merge, not by ordering.
      */
     fun dominates(other: VectorClock): Boolean {
         val allKeys = entries.keys + other.entries.keys
@@ -41,7 +43,10 @@ data class VectorClock(
     }
 
     /**
-     * Returns true if this clock is less than or equal to the other (other dominates or equals this).
+     * True if every entry of this clock is <= the corresponding entry in
+     * [other]. Equivalent to "[other] dominates or equals this". Used by
+     * [com.doppio.syncdo.sync.server.SyncServer]'s delta log to decide which
+     * deltas a client at [other] still needs to receive.
      */
     fun isLessThanOrEqual(other: VectorClock): Boolean {
         val allKeys = entries.keys + other.entries.keys

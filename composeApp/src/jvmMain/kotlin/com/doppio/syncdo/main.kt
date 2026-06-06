@@ -4,6 +4,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import com.doppio.syncdo.di.AppModule
+import kotlinx.coroutines.runBlocking
 
 fun main() {
     val instanceName = System.getProperty("syncDo.instance") ?: "default"
@@ -12,7 +14,10 @@ fun main() {
 
     application {
         Window(
-            onCloseRequest = ::exitApplication,
+            onCloseRequest = {
+                runBlocking { AppModule.shutdown() }
+                exitApplication()
+            },
             title = "SyncDO — $instanceName",
             state = WindowState(
                 width = 412.dp,

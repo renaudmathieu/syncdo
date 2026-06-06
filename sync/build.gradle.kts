@@ -54,6 +54,9 @@ kotlin {
             api(libs.ktor.serverCore)
             api(libs.ktor.server.websockets)
         }
+        jvmTest.dependencies {
+            implementation(libs.ktor.serverTestHost)
+        }
     }
 }
 

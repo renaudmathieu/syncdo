@@ -51,15 +51,21 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - `SyncMessage<D>` — sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
   with `SyncMessage.serializer(deltaSerializer)`.
 - `SyncEngine<D : Delta<D>>` — client WebSocket engine. Constructor takes a
-  `KSerializer<D>` and four callbacks (`onRemoteDelta`, `getPendingDelta`,
-  `restorePendingDelta`, `getLocalClock`). Exponential backoff reconnect.
+  `KSerializer<D>`, four suspending callbacks (`onRemoteDelta`,
+  `getPendingDelta`, `restorePendingDelta`, `getLocalClock`), and an optional
+  `SyncLogger` (defaults to `Noop`). `stop()` is suspending and joins the
+  connect loop before returning. Exponential backoff reconnect.
+- `SyncLogger` — `fun interface` sink for diagnostics. Replaces all internal
+  `println` calls.
 - `SyncStatus` — `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
 - `com.doppio.syncdo.sync.server.SyncServer<S : DeltaState<S, D>, D : Delta<D>>`
-  (jvmMain) — authoritative state + bounded `DeltaLog` + mutex.
+  (jvmMain) — authoritative state + bounded `DeltaLog` + mutex. Optional
+  `onStateChanged` constructor hook fires inside the mutex after every merge
+  (used by the sample `:server` for disk persistence).
 - `Route.syncEndpoint(server, deltaSerializer, path = "/sync")` (jvmMain) —
-  Ktor WebSocket handler; broadcasts pushes to peers, answers pulls with missed
-  deltas, falls back to full-state delta if the log doesn't reach the client's
-  clock.
+  Ktor WebSocket handler; broadcasts pushes to peers, prunes peers whose send
+  fails, answers pulls with missed deltas, falls back to full-state delta if
+  the log doesn't reach the client's clock.
 
 ## Sample data flow (Todo)
 

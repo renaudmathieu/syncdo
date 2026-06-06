@@ -48,9 +48,12 @@ fun <S : DeltaState<S, D>, D : Delta<D>> Route.syncEndpoint(
                         server.mergeDelta(message.delta)
                         val broadcast: SyncMessage<D> = SyncMessage.PullResponse(message.delta)
                         val payload = json.encodeToString(messageSerializer, broadcast)
-                        connections.forEach { peer ->
+                        // Snapshot peers under the set's monitor to avoid CME, then send outside it.
+                        val peers = synchronized(connections) { connections.toList() }
+                        peers.forEach { peer ->
                             if (peer !== this) {
                                 runCatching { peer.send(Frame.Text(payload)) }
+                                    .onFailure { connections -= peer }
                             }
                         }
                         val missed = server.getDeltaSince(message.delta.clock)

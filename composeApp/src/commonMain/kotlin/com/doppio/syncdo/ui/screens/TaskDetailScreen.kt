@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.doppio.syncdo.model.TodoItem
+import com.doppio.syncdo.sync.SyncStatus
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -25,6 +26,7 @@ import kotlinx.datetime.toLocalDateTime
 fun TaskDetailScreen(
     modifier: Modifier = Modifier,
     item: TodoItem?,
+    syncStatus: SyncStatus = SyncStatus.Synced,
     onUpdateTitle: (String) -> Unit,
     onUpdateNote: (String) -> Unit,
     onDelete: () -> Unit
@@ -57,12 +59,30 @@ fun TaskDetailScreen(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // Header
-        Text(
-            text = "Task Detail",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Task Detail",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (syncStatus == SyncStatus.Offline) {
+                Text(
+                    text = "Offline — edits queued",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
 
         // Title card
         Column(

@@ -83,6 +83,20 @@ embeddedServer(Netty, port = 8080) {
 
 ## Protocol
 
+```
+   Client A                 Server                 Client B
+      │                        │                        │
+      │── PullRequest(clk)────▶│                        │
+      │◀── PullResponse(Δ) ────│ (missed deltas or full state)
+      │                        │                        │
+      │── PushDelta(Δ_A) ─────▶│                        │
+      │                        │── PullResponse(Δ_A) ──▶│
+      │◀── PullResponse(Δ') ───│ (anything A also missed)│
+      │                        │                        │
+      │                        │◀──── PushDelta(Δ_B) ───│
+      │◀── PullResponse(Δ_B) ──│                        │
+```
+
 On connect, the client sends `PullRequest(clock, nodeId)`. The server replies with a
 `PullResponse(delta)` containing every delta the client has missed (or a full-state
 delta if the client is beyond the bounded log window).
