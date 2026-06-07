@@ -28,28 +28,28 @@ These properties guarantee that any two replicas receiving the same set of updat
 
 ## Building Blocks
 
-The complex `TodoListCrdt` is built by **composing simpler CRDTs** — each of which is itself a join-semilattice. Composition of semilattices yields a semilattice, so correctness composes as well.
+The complex `TodoListCrdt` is built by **composing simpler CRDTs** - each of which is itself a join-semilattice. Composition of semilattices yields a semilattice, so correctness composes as well.
 
 ### VectorClock
 
 > `shared/.../crdt/VectorClock.kt`
 
-A logical clock tracking the number of events seen from each node. Used for causal ordering — determining which updates a node has already seen.
+A logical clock tracking the number of events seen from each node. Used for causal ordering - determining which updates a node has already seen.
 
 ```
 { "node-A": 5, "node-B": 3 }
 ```
 
-- **`increment(nodeId)`** — bumps the counter for a node (called on every local mutation).
-- **`merge(other)`** — pointwise max across all entries.
-- **`dominates(other)`** — true if this clock is strictly ahead of the other on at least one entry and not behind on any.
-- **`isLessThanOrEqual(other)`** — true if the other clock has seen everything this clock has seen. Used by the server to decide which deltas a client has missed.
+- **`increment(nodeId)`** - bumps the counter for a node (called on every local mutation).
+- **`merge(other)`** - pointwise max across all entries.
+- **`dominates(other)`** - true if this clock is strictly ahead of the other on at least one entry and not behind on any.
+- **`isLessThanOrEqual(other)`** - true if the other clock has seen everything this clock has seen. Used by the server to decide which deltas a client has missed.
 
 ### LwwRegister\<T\>
 
 > `shared/.../crdt/LwwRegister.kt`
 
-A **Last-Writer-Wins Register** — holds a single value, resolved by wall-clock timestamp. When two writes happen at the exact same instant, the higher `nodeId` (lexicographic) wins, ensuring deterministic convergence.
+A **Last-Writer-Wins Register** - holds a single value, resolved by wall-clock timestamp. When two writes happen at the exact same instant, the higher `nodeId` (lexicographic) wins, ensuring deterministic convergence.
 
 ```kotlin
 data class LwwRegister<T>(
@@ -70,7 +70,7 @@ Used for every mutable field of a todo item (title, note, completed, position).
 
 > `shared/.../crdt/OrSet.kt`
 
-An **add-wins** set. Each `add()` attaches a globally unique tag `(nodeId, counter)`. A `remove()` only tombstones the tags observed at removal time. If another node concurrently adds the same element (with a different tag), that tag survives the remove — hence **add wins**.
+An **add-wins** set. Each `add()` attaches a globally unique tag `(nodeId, counter)`. A `remove()` only tombstones the tags observed at removal time. If another node concurrently adds the same element (with a different tag), that tag survives the remove - hence **add wins**.
 
 ```kotlin
 data class OrSet<E>(
@@ -110,7 +110,7 @@ Merge: field-by-field LWW merge. `createdAt` uses `minOf` (earliest wins).
 
 > `shared/.../crdt/TodoListCrdt.kt`
 
-The **top-level aggregate** — the single source of truth for the entire todo list:
+The **top-level aggregate** - the single source of truth for the entire todo list:
 
 ```kotlin
 data class TodoListCrdt(
@@ -149,12 +149,12 @@ data class TodoListDelta(
 )
 ```
 
-`OrSetDelta<E>` lives in `:crdt` — it's the generic patch shape produced by
+`OrSetDelta<E>` lives in `:crdt` - it's the generic patch shape produced by
 `OrSet.addWithDelta` / `removeWithDelta`, composable via `merge`. `TodoListDelta`
 merges field-by-field using the `:crdt` operators: `Map.mergeStates` for the
 items map, `OrSetDelta.merge` for membership, `VectorClock.merge` for the clock.
 
-Deltas are themselves mergeable — two deltas can be combined into one, which is important for batching.
+Deltas are themselves mergeable - two deltas can be combined into one, which is important for batching.
 
 ### DeltaBuffer
 
@@ -162,10 +162,10 @@ Deltas are themselves mergeable — two deltas can be combined into one, which i
 
 Accumulates local mutations into a pending delta until the sync engine successfully pushes it to the server. Supports three operations:
 
-- `recordAdd(id, item, tag, clock)` — new item added
-- `recordRemove(id, tombstonedTags, clock)` — item removed
-- `recordUpdate(id, item, clock)` — item field changed
-- `flush()` — returns the accumulated delta and resets the buffer
+- `recordAdd(id, item, tag, clock)` - new item added
+- `recordRemove(id, tombstonedTags, clock)` - item removed
+- `recordUpdate(id, item, clock)` - item field changed
+- `flush()` - returns the accumulated delta and resets the buffer
 
 ## Sync Protocol
 

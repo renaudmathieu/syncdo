@@ -5,7 +5,7 @@
 > "Dans une to-do list, si deux utilisateurs modifient le même champ, on bascule sur
 > last-write-wins. Quel est l'intérêt des CRDTs ?"
 
-L'intuition est bonne — et partiellement juste. `LwwRegister` **est** un CRDT. Mais
+L'intuition est bonne - et partiellement juste. `LwwRegister` **est** un CRDT. Mais
 l'intérêt des CRDTs dans ce projet n'est pas de remplacer LWW : c'est de définir
 *à quelle granularité* et *sur quels problèmes* LWW s'applique, et de garantir la
 convergence même quand plusieurs structures sont composées ensemble.
@@ -68,7 +68,7 @@ Avec LWW sur la liste entière (dernier `updatedAt` gagne) :
 Avec l'`OrSet` de ce projet :
 - Chaque suppression tombstone les tags *observés au moment de la suppression*.
 - Les deux opérations sont indépendantes et les deux se retrouvent dans l'état mergé.
-- Résultat : `[A]` — les deux suppressions sont honorées.
+- Résultat : `[A]` - les deux suppressions sont honorées.
 
 ```kotlin
 // OrSet.merge() : union des tags actifs, union des tombstones
@@ -138,13 +138,13 @@ l'état entier (ou implémenter une logique de diff non-garantie).
 
 | Problème                                      | LWW objet entier | LWW par champ (LwwRegister) | OrSet         |
 |-----------------------------------------------|------------------|-----------------------------|---------------|
-| Alice modifie title, Bob modifie note          | ❌ une modif perdue | ✅ les deux préservées     | —             |
-| Alice supprime B, Bob supprime C               | ❌ une suppression perdue | —                  | ✅ les deux honorées |
-| Add + delete concurrent sur le même élément   | ❌ non déterministe | —                          | ✅ add-wins   |
+| Alice modifie title, Bob modifie note          | ❌ une modif perdue | ✅ les deux préservées     | -             |
+| Alice supprime B, Bob supprime C               | ❌ une suppression perdue | -                  | ✅ les deux honorées |
+| Add + delete concurrent sur le même élément   | ❌ non déterministe | -                          | ✅ add-wins   |
 | Recevoir le même delta deux fois              | ❌ peut écraser   | ✅ idempotent               | ✅ idempotent |
 | Convergence garantie formellement             | ❌                | ✅                          | ✅            |
 
-**En résumé :** ton intuition est correcte pour les *champs scalaires* — LWW est
+**En résumé :** ton intuition est correcte pour les *champs scalaires* - LWW est
 exactement la bonne politique, et c'est ce que `LwwRegister` implémente. Les CRDTs
 apportent leur valeur principale à deux endroits : (1) la **granularité** (par champ
 plutôt que par objet), et (2) la **gestion de l'appartenance** à l'ensemble via

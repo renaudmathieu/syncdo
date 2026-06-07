@@ -1,13 +1,13 @@
 # SyncDO Sync
 
 Generic WebSocket-based sync engine + Ktor server routing for Kotlin Multiplatform
-CRDTs. Pairs with [`com.doppio.syncdo:crdt`](../crdt/README.md) — bring your own
+CRDTs. Pairs with [`com.doppio.syncdo:crdt`](../crdt/README.md) - bring your own
 `Delta<D>` / `DeltaState<S, D>` and the engine handles connection lifecycle,
 incremental catch-up, broadcast fan-out, and offline buffering.
 
 Targets:
-- `commonMain` — protocol + client engine (Android, iOS arm64/simulatorArm64, JVM)
-- `jvmMain` — generic Ktor `SyncServer` + `Route.syncEndpoint(...)` helpers
+- `commonMain` - protocol + client engine (Android, iOS arm64/simulatorArm64, JVM)
+- `jvmMain` - generic Ktor `SyncServer` + `Route.syncEndpoint(...)` helpers
 
 ## Installation
 
@@ -25,7 +25,7 @@ dependencies {
 |---|---|---|
 | `SyncMessage<D>` | commonMain | Sealed protocol: `PushDelta`, `PullRequest`, `PullResponse`. Serialize with `SyncMessage.serializer(deltaSerializer)`. |
 | `SyncEngine<D>` | commonMain | Client: WebSocket connection, exponential backoff reconnect, pending-delta buffer, local/remote merge callbacks. |
-| `SyncStatus` | commonMain | `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error` — observable on the engine as a `StateFlow`. |
+| `SyncStatus` | commonMain | `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error` - observable on the engine as a `StateFlow`. |
 | `SyncServer<S, D>` | jvmMain | Server: authoritative state, bounded delta log for incremental catch-up, mutex-guarded merges. |
 | `Route.syncEndpoint(...)` | jvmMain | Ktor extension: installs the `/sync` WebSocket handler that routes `SyncMessage` traffic and broadcasts to connected peers. |
 
@@ -111,7 +111,7 @@ server-bound. The engine ignores misdirected variants.
 
 ## Design notes
 
-- **No hardcoded domain types.** Everything is parameterized on `Delta<D>` —
+- **No hardcoded domain types.** Everything is parameterized on `Delta<D>` -
   bring your own CRDT aggregate.
 - **Generic serialization.** `SyncMessage<D>` uses kotlinx.serialization's
   type-parameter serializer: callers pass `MyDelta.serializer()` into

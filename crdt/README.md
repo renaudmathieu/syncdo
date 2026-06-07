@@ -9,7 +9,7 @@ Targets: Android, iOS (arm64 + simulator arm64), JVM (desktop + server).
 ## Installation
 
 ```kotlin
-// settings.gradle.kts — already done in most projects
+// settings.gradle.kts - already done in most projects
 dependencyResolutionManagement {
     repositories { mavenCentral() /* or mavenLocal() while snapshotting */ }
 }
@@ -24,7 +24,7 @@ dependencies {
 
 | Type | Purpose |
 |---|---|
-| `CrdtState<T>` | Base interface — the `merge` operation must be commutative, associative, idempotent. |
+| `CrdtState<T>` | Base interface - the `merge` operation must be commutative, associative, idempotent. |
 | `VectorClock` | Logical timestamps per node for causal ordering across distributed writes. |
 | `LwwRegister<T>` | Last-writer-wins register, tie-broken by node ID. Uses `kotlin.time.Instant`. |
 | `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. |
@@ -41,7 +41,7 @@ dependencies {
 | Causal ordering of a stream of events | `VectorClock` | Per-node monotonic counters; cheap to merge (pointwise max). |
 | A composite document with several of the above | Compose them in a `@Serializable data class` and implement `merge` field-wise. | Composition of join-semilattices is itself a join-semilattice, so convergence is free. See `:shared/.../TodoListCrdt` for a worked example. |
 
-## Quickstart — build your own CRDT aggregate
+## Quickstart - build your own CRDT aggregate
 
 ```kotlin
 import com.doppio.syncdo.crdt.*
@@ -79,7 +79,7 @@ sync engine and Ktor server endpoint for free.
 
 - All types are `@Serializable` (kotlinx.serialization). JSON is the default wire
   format; binary formats work too.
-- `LwwRegister` uses `kotlin.time.Instant` (stdlib, Kotlin 2.1+) — no extra
+- `LwwRegister` uses `kotlin.time.Instant` (stdlib, Kotlin 2.1+) - no extra
   datetime dependency required.
 - `OrSet` is the more subtle of the two registers. Add operations attach a fresh
   unique tag per mutation; remove tombstones only the tags observed at remove

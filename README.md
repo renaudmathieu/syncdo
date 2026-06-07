@@ -8,19 +8,19 @@ Licensed under [Apache 2.0](LICENSE).
 
 ### Published libraries
 
-- [**`:crdt`**](crdt/README.md) — `com.doppio.syncdo:crdt` — generic CRDT primitives
+- [**`:crdt`**](crdt/README.md) - `com.doppio.syncdo:crdt` - generic CRDT primitives
   (`VectorClock`, `LwwRegister`, `OrSet`, `Delta`/`DeltaState`, `DeltaBuffer`).
-- [**`:sync`**](sync/README.md) — `com.doppio.syncdo:sync` — generic WebSocket sync
+- [**`:sync`**](sync/README.md) - `com.doppio.syncdo:sync` - generic WebSocket sync
   engine + Ktor server routing. Parameterized on any `Delta<D>` from `:crdt`.
 
 Targets: Android, iOS (arm64 + simulatorArm64), JVM.
 
 ### Sample apps (not published)
 
-- [**`:shared`**](shared/README.md) — Todo domain glue: `TodoListCrdt`,
+- [**`:shared`**](shared/README.md) - Todo domain glue: `TodoListCrdt`,
   `TodoListDelta`, `OfflineFirstTodoRepository`, file-based persistence.
-- **`:composeApp`** — Compose Multiplatform UI (Android, iOS, Desktop).
-- [**`:server`**](server/README.md) — Ktor sample server wiring the generic
+- **`:composeApp`** - Compose Multiplatform UI (Android, iOS, Desktop).
+- [**`:server`**](server/README.md) - Ktor sample server wiring the generic
   `syncEndpoint` with Todo CRDT types.
 
 ```
@@ -74,8 +74,8 @@ emulators for the sync demo.
 
 Server config (env vars):
 
-- `SYNCDO_PORT` — bind port (default `8080`).
-- `SYNCDO_STATE_DIR` — directory for the persisted JSON state (default `./data`).
+- `SYNCDO_PORT` - bind port (default `8080`).
+- `SYNCDO_STATE_DIR` - directory for the persisted JSON state (default `./data`).
 
 On first launch each client asks for the server host. Enter:
 
@@ -89,11 +89,11 @@ skip the prompt.
 
 ### Sync demo scenarios
 
-1. **Real-time sync** — Add a task on device A, it appears on B within ~1s.
-2. **Concurrent different fields** — Edit title on A and note on B simultaneously; both survive.
-3. **Concurrent same field** — Both devices converge to the later-timestamp write (LWW, node-id tiebreak).
-4. **Offline buffering** — Disable sync on A, mutate, re-enable; pending deltas push cleanly.
-5. **Add-wins** — Concurrent edit + delete → edit wins (OR-Set semantics).
+1. **Real-time sync** - Add a task on device A, it appears on B within ~1s.
+2. **Concurrent different fields** - Edit title on A and note on B simultaneously; both survive.
+3. **Concurrent same field** - Both devices converge to the later-timestamp write (LWW, node-id tiebreak).
+4. **Offline buffering** - Disable sync on A, mutate, re-enable; pending deltas push cleanly.
+5. **Add-wins** - Concurrent edit + delete → edit wins (OR-Set semantics).
 
 ## Tests & build
 

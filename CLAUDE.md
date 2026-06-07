@@ -24,7 +24,7 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 ## Build & test
 
 ```shell
-./gradlew build                                # Everything (slow first time — iOS link)
+./gradlew build                                # Everything (slow first time - iOS link)
 ./gradlew :crdt:allTests :sync:allTests        # Library tests (incl. iOS sim)
 ./gradlew :shared:jvmTest                      # Todo CRDT tests (fastest feedback)
 ./gradlew :server:test
@@ -39,30 +39,30 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 
 ### `:crdt`
 
-- `CrdtState<T>` — base interface with `merge`.
-- `Delta<D>` — partial change with `clock`, `merge`, `isEmpty`.
-- `DeltaState<S, D>` — `CrdtState` that supports `applyDelta(delta)`.
+- `CrdtState<T>` - base interface with `merge`.
+- `Delta<D>` - partial change with `clock`, `merge`, `isEmpty`.
+- `DeltaState<S, D>` - `CrdtState` that supports `applyDelta(delta)`.
 - `VectorClock`, `LwwRegister<T>` (uses `kotlin.time.Instant`), `OrSet<E>`,
   `DeltaBuffer<D>`.
 - All types `@Serializable`.
 
 ### `:sync`
 
-- `SyncMessage<D>` — sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
+- `SyncMessage<D>` - sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
   with `SyncMessage.serializer(deltaSerializer)`.
-- `SyncEngine<D : Delta<D>>` — client WebSocket engine. Constructor takes a
+- `SyncEngine<D : Delta<D>>` - client WebSocket engine. Constructor takes a
   `KSerializer<D>`, four suspending callbacks (`onRemoteDelta`,
   `getPendingDelta`, `restorePendingDelta`, `getLocalClock`), and an optional
   `SyncLogger` (defaults to `Noop`). `stop()` is suspending and joins the
   connect loop before returning. Exponential backoff reconnect.
-- `SyncLogger` — `fun interface` sink for diagnostics. Replaces all internal
+- `SyncLogger` - `fun interface` sink for diagnostics. Replaces all internal
   `println` calls.
-- `SyncStatus` — `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
+- `SyncStatus` - `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
 - `com.doppio.syncdo.sync.server.SyncServer<S : DeltaState<S, D>, D : Delta<D>>`
-  (jvmMain) — authoritative state + bounded `DeltaLog` + mutex. Optional
+  (jvmMain) - authoritative state + bounded `DeltaLog` + mutex. Optional
   `onStateChanged` constructor hook fires inside the mutex after every merge
   (used by the sample `:server` for disk persistence).
-- `Route.syncEndpoint(server, deltaSerializer, path = "/sync")` (jvmMain) —
+- `Route.syncEndpoint(server, deltaSerializer, path = "/sync")` (jvmMain) -
   Ktor WebSocket handler; broadcasts pushes to peers, prunes peers whose send
   fails, answers pulls with missed deltas, falls back to full-state delta if
   the log doesn't reach the client's clock.
@@ -82,12 +82,12 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - Manual DI: `composeApp/.../di/AppModule.kt`. No Koin/Dagger.
 - Server port `8080` (see `shared/.../Constants.kt`). Host defaults to
   `localhost`; overridable in `AppModule.initialize(serverHost)`.
-- `FileIO` in `:shared` uses `expect/actual` per platform — sample concern, not
+- `FileIO` in `:shared` uses `expect/actual` per platform - sample concern, not
   part of the library surface.
 - Publishing metadata lives in `gradle.properties` (`GROUP`, `VERSION_NAME`)
   and each library's `build.gradle.kts` (`mavenPublishing { pom { … } }`).
 - Any change to `:crdt` or `:sync` public API must be followed by
-  `./gradlew :<module>:apiDump` and a committed `api/` diff — `apiCheck` runs
+  `./gradlew :<module>:apiDump` and a committed `api/` diff - `apiCheck` runs
   in `build` and will fail otherwise.
 
 ## `design.pen`
