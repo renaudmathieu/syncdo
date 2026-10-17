@@ -1,7 +1,11 @@
+public abstract interface class com/doppio/syncdo/sync/ClockedState : com/doppio/syncdo/crdt/CrdtState {
+	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
+}
+
 public final class com/doppio/syncdo/sync/DeltaBuffer {
 	public fun <init> ()V
 	public final fun flush (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun record (Lcom/doppio/syncdo/crdt/Delta;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun record (Lcom/doppio/syncdo/crdt/CrdtState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/doppio/syncdo/sync/SyncEngine {
@@ -142,10 +146,10 @@ public final class com/doppio/syncdo/sync/server/SyncRouteKt {
 }
 
 public final class com/doppio/syncdo/sync/server/SyncServer {
-	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/functions/Function2;)V
-	public synthetic fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/doppio/syncdo/sync/ClockedState;ILkotlin/jvm/functions/Function2;)V
+	public synthetic fun <init> (Lcom/doppio/syncdo/sync/ClockedState;ILkotlin/jvm/functions/Function2;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun currentState (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getDeltaSince (Lcom/doppio/syncdo/crdt/VectorClock;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun mergeDelta (Lcom/doppio/syncdo/crdt/Delta;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun mergeDelta (Lcom/doppio/syncdo/sync/ClockedState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 

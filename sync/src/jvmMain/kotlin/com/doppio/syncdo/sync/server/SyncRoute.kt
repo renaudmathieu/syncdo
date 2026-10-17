@@ -1,7 +1,6 @@
 package com.doppio.syncdo.sync.server
 
-import com.doppio.syncdo.crdt.Delta
-import com.doppio.syncdo.crdt.DeltaState
+import com.doppio.syncdo.sync.ClockedState
 import com.doppio.syncdo.sync.SyncMessage
 import io.ktor.server.routing.Route
 import io.ktor.server.websocket.WebSocketServerSession
@@ -22,15 +21,15 @@ import kotlinx.serialization.json.Json
  * Example:
  * ```kotlin
  * install(WebSockets)
- * val syncServer = SyncServer(::MyCrdt, ::fullStateAsDelta)
+ * val syncServer = SyncServer(MyCrdt())
  * routing {
- *     syncEndpoint(syncServer, MyDelta.serializer())
+ *     syncEndpoint(syncServer, MyCrdt.serializer())
  * }
  * ```
  */
-fun <S : DeltaState<S, D>, D : Delta<D>> Route.syncEndpoint(
-    server: SyncServer<S, D>,
-    deltaSerializer: KSerializer<D>,
+fun <S : ClockedState<S>> Route.syncEndpoint(
+    server: SyncServer<S>,
+    deltaSerializer: KSerializer<S>,
     path: String = "/sync",
 ) {
     val messageSerializer = SyncMessage.serializer(deltaSerializer)
@@ -38,6 +37,13 @@ fun <S : DeltaState<S, D>, D : Delta<D>> Route.syncEndpoint(
     val connections = Collections.synchronizedSet(mutableSetOf<WebSocketServerSession>())
 
     webSocket(path) {
+        /** Answer with what this client is missing, if anything. */
+        suspend fun sendMissed(delta: S?) {
+            if (delta == null) return
+            val response: SyncMessage<S> = SyncMessage.PullResponse(delta)
+            send(Frame.Text(json.encodeToString(messageSerializer, response)))
+        }
+
         connections += this
         try {
             for (frame in incoming) {
@@ -46,7 +52,7 @@ fun <S : DeltaState<S, D>, D : Delta<D>> Route.syncEndpoint(
                 when (message) {
                     is SyncMessage.PushDelta -> {
                         server.mergeDelta(message.delta)
-                        val broadcast: SyncMessage<D> = SyncMessage.PullResponse(message.delta)
+                        val broadcast: SyncMessage<S> = SyncMessage.PullResponse(message.delta)
                         val payload = json.encodeToString(messageSerializer, broadcast)
                         // Snapshot peers under the set's monitor to avoid CME, then send outside it.
                         val peers = synchronized(connections) { connections.toList() }
@@ -56,17 +62,9 @@ fun <S : DeltaState<S, D>, D : Delta<D>> Route.syncEndpoint(
                                     .onFailure { connections -= peer }
                             }
                         }
-                        val missed = server.getDeltaSince(message.delta.clock)
-                        if (!missed.isEmpty()) {
-                            val catchup: SyncMessage<D> = SyncMessage.PullResponse(missed)
-                            send(Frame.Text(json.encodeToString(messageSerializer, catchup)))
-                        }
+                        sendMissed(server.getDeltaSince(message.delta.clock))
                     }
-                    is SyncMessage.PullRequest -> {
-                        val delta = server.getDeltaSince(message.clock)
-                        val response: SyncMessage<D> = SyncMessage.PullResponse(delta)
-                        send(Frame.Text(json.encodeToString(messageSerializer, response)))
-                    }
+                    is SyncMessage.PullRequest -> sendMissed(server.getDeltaSince(message.clock))
                     is SyncMessage.PullResponse -> Unit // Client-bound; ignored on server.
                 }
             }

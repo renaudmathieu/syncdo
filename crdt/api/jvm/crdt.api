@@ -2,17 +2,6 @@ public abstract interface class com/doppio/syncdo/crdt/CrdtState {
 	public abstract fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
 }
 
-public abstract interface class com/doppio/syncdo/crdt/Delta {
-	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
-	public abstract fun isEmpty ()Z
-	public abstract fun merge (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/Delta;
-}
-
-public abstract interface class com/doppio/syncdo/crdt/DeltaState : com/doppio/syncdo/crdt/CrdtState {
-	public abstract fun applyDelta (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/DeltaState;
-	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
-}
-
 public final class com/doppio/syncdo/crdt/LwwRegister : com/doppio/syncdo/crdt/CrdtState {
 	public static final field Companion Lcom/doppio/syncdo/crdt/LwwRegister$Companion;
 	public fun <init> (Ljava/lang/Object;Lkotlin/time/Instant;Ljava/lang/String;)V

@@ -2,7 +2,6 @@ package com.doppio.syncdo.di
 
 import com.doppio.syncdo.SERVER_PORT
 import com.doppio.syncdo.crdt.TodoListCrdt
-import com.doppio.syncdo.crdt.TodoListDelta
 import com.doppio.syncdo.persistence.JsonFileStorage
 import com.doppio.syncdo.persistence.LocalStorage
 import com.doppio.syncdo.persistence.getStoragePath
@@ -20,7 +19,7 @@ import kotlinx.coroutines.cancel
 object AppModule {
     private var scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var _repository: OfflineFirstTodoRepository
-    private var _syncEngine: SyncEngine<TodoListDelta>? = null
+    private var _syncEngine: SyncEngine<TodoListCrdt>? = null
     private var initialized = false
 
     val repository: TodoRepository
@@ -48,7 +47,7 @@ object AppModule {
 
         // Create sync engine with lambdas pointing to the SAME repository instance
         _syncEngine = SyncEngine(
-            deltaSerializer = TodoListDelta.serializer(),
+            deltaSerializer = TodoListCrdt.serializer(),
             serverHost = serverHost,
             serverPort = SERVER_PORT,
             nodeId = nodeId,

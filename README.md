@@ -9,16 +9,16 @@ Licensed under [Apache 2.0](LICENSE).
 ### Published libraries
 
 - [**`:crdt`**](crdt/README.md) - `com.doppio.syncdo:crdt` - generic CRDT primitives
-  (`VectorClock`, `LwwRegister`, `OrSet`, `Delta`/`DeltaState`).
+  (`CrdtState`, `VectorClock`, `LwwRegister`, `OrSet`).
 - [**`:sync`**](sync/README.md) - `com.doppio.syncdo:sync` - generic WebSocket sync
-  engine + Ktor server routing. Parameterized on any `Delta<D>` from `:crdt`.
+  engine + Ktor server routing. Parameterized on any `ClockedState<S>` (a `CrdtState` with a `VectorClock`).
 
 Targets: Android, iOS (arm64 + simulatorArm64), JVM.
 
 ### Sample apps (not published)
 
 - [**`:shared`**](shared/README.md) - Todo domain glue: `TodoListCrdt`,
-  `TodoListDelta`, `OfflineFirstTodoRepository`, file-based persistence.
+  `OfflineFirstTodoRepository`, file-based persistence.
 - **`:composeApp`** - Compose Multiplatform UI (Android, iOS, Desktop).
 - [**`:server`**](server/README.md) - Ktor sample server wiring the generic
   `syncEndpoint` with Todo CRDT types.
@@ -30,14 +30,14 @@ Targets: Android, iOS (arm64 + simulatorArm64), JVM.
                    ▼                                   ▼
 ┌──────────────────────────────────────────────────────────┐
 │                       :shared (sample)                   │
-│   TodoListCrdt · TodoListDelta · OfflineFirstRepository  │
+│          TodoListCrdt · OfflineFirstRepository          │
 └─────────────────────┬──────────────────────┬─────────────┘
                       ▼                      ▼
             ┌──────────────────┐   ┌────────────────────┐
             │  :sync (library) │──▶│  :crdt (library)   │
             │  SyncEngine<D>   │   │  VectorClock       │
-            │  SyncServer<S,D> │   │  LwwRegister       │
-            │  SyncMessage<D>  │   │  OrSet · Delta     │
+            │  SyncServer<S>   │   │  LwwRegister       │
+            │  SyncMessage<D>  │   │  OrSet · CrdtState │
             └──────────────────┘   └────────────────────┘
 ```
 

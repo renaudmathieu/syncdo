@@ -1,7 +1,11 @@
+public abstract interface class com/doppio/syncdo/sync/ClockedState : com/doppio/syncdo/crdt/CrdtState {
+	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
+}
+
 public final class com/doppio/syncdo/sync/DeltaBuffer {
 	public fun <init> ()V
 	public final fun flush (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun record (Lcom/doppio/syncdo/crdt/Delta;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun record (Lcom/doppio/syncdo/crdt/CrdtState;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/doppio/syncdo/sync/SyncEngine {

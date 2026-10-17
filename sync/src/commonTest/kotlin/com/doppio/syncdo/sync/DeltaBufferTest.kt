@@ -1,16 +1,13 @@
 package com.doppio.syncdo.sync
 
-import com.doppio.syncdo.crdt.Delta
-import com.doppio.syncdo.crdt.VectorClock
+import com.doppio.syncdo.crdt.CrdtState
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-private data class SetDelta(val items: Set<String>) : Delta<SetDelta> {
-    override val clock = VectorClock()
+private data class SetDelta(val items: Set<String>) : CrdtState<SetDelta> {
     override fun merge(other: SetDelta) = SetDelta(items + other.items)
-    override fun isEmpty() = items.isEmpty()
 }
 
 class DeltaBufferTest {

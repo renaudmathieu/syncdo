@@ -24,12 +24,10 @@ dependencies {
 
 | Type | Purpose |
 |---|---|
-| `CrdtState<T>` | Base interface - the `merge` operation must be commutative, associative, idempotent. |
+| `CrdtState<T>` | Base interface - the `merge` operation must be commutative, associative, idempotent. A delta is a small state of the same type. |
 | `VectorClock` | Logical timestamps per node for causal ordering across distributed writes. |
 | `LwwRegister<T>` | Last-writer-wins register, tie-broken by node ID. Uses `kotlin.time.Instant`. |
 | `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. `addDelta` / `removeDelta` return the change as a small `OrSet`. |
-| `Delta<D>` | Partial change that can be merged + shipped over the wire. |
-| `DeltaState<S, D>` | CRDT state that supports delta-based sync via `applyDelta(delta)`. |
 
 ### When to use which
 
@@ -40,50 +38,34 @@ dependencies {
 | Causal ordering of a stream of events | `VectorClock` | Per-node monotonic counters; cheap to merge (pointwise max). |
 | A composite document with several of the above | Compose them in a `@Serializable data class` and implement `merge` field-wise. | Composition of join-semilattices is itself a join-semilattice, so convergence is free. See `:shared/.../TodoListCrdt` for a worked example. |
 
-## Quickstart - build your own CRDT aggregate
+## Quickstart - build your own CRDT
 
 A grow-only counter (G-Counter): each node only increments its own entry, and
-merge takes the max per node. The delta carries per-node *totals*, not increments,
-so applying the same delta twice is harmless (idempotence).
+merge takes the max per node. A delta is just a small `GCounter` carrying the new
+*total* of one node (not "+1"), so receiving it twice is harmless (idempotence).
 
 ```kotlin
 import com.doppio.syncdo.crdt.*
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CounterDelta(
-    override val clock: VectorClock,
-    val counts: Map<NodeId, Long>,
-) : Delta<CounterDelta> {
-    override fun merge(other: CounterDelta) =
-        CounterDelta(clock.merge(other.clock), maxPerNode(counts, other.counts))
-
-    override fun isEmpty(): Boolean = counts.isEmpty()
-}
-
-@Serializable
-data class Counter(
-    override val clock: VectorClock = VectorClock(),
-    val counts: Map<NodeId, Long> = emptyMap(),
-) : DeltaState<Counter, CounterDelta> {
+data class GCounter(val counts: Map<NodeId, Long> = emptyMap()) : CrdtState<GCounter> {
     val value: Long get() = counts.values.sum()
 
-    fun incrementDelta(nodeId: NodeId) =
-        CounterDelta(clock.increment(nodeId), mapOf(nodeId to (counts[nodeId] ?: 0L) + 1))
+    fun incrementDelta(nodeId: NodeId) = GCounter(mapOf(nodeId to (counts[nodeId] ?: 0L) + 1))
 
-    override fun merge(other: Counter) =
-        Counter(clock.merge(other.clock), maxPerNode(counts, other.counts))
-
-    override fun applyDelta(delta: CounterDelta) =
-        Counter(clock.merge(delta.clock), maxPerNode(counts, delta.counts))
+    override fun merge(other: GCounter) = GCounter(
+        (counts.keys + other.counts.keys).associateWith { maxOf(counts[it] ?: 0L, other.counts[it] ?: 0L) }
+    )
 }
 
-private fun maxPerNode(a: Map<NodeId, Long>, b: Map<NodeId, Long>): Map<NodeId, Long> =
-    (a.keys + b.keys).associateWith { maxOf(a[it] ?: 0L, b[it] ?: 0L) }
+var counter = GCounter()
+val delta = counter.incrementDelta("nodeA")
+counter = counter.merge(delta) // apply locally, then ship `delta` to the other replicas
 ```
 
 Pair this with [`com.doppio.syncdo:sync`](../sync/README.md) to get an offline-first
-sync engine and Ktor server endpoint for free.
+sync engine and Ktor server endpoint: add a `clock` and implement its `ClockedState`.
 
 ## Design notes
 

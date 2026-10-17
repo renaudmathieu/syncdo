@@ -39,18 +39,19 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 
 ### `:crdt`
 
-- `CrdtState<T>` - base interface with `merge`.
-- `Delta<D>` - partial change with `clock`, `merge`, `isEmpty`.
-- `DeltaState<S, D>` - `CrdtState` that supports `applyDelta(delta)`.
+- `CrdtState<T>` - the only interface: `merge`. A delta is a small state of the
+  same type, applied with `merge`.
 - `VectorClock`, `LwwRegister<T>` (uses `kotlin.time.Instant`), `OrSet<E>`
   (`addDelta` / `removeDelta` return the change as a small `OrSet`).
 - All types `@Serializable`. No coroutines dependency.
 
 ### `:sync`
 
+- `ClockedState<S>` - `CrdtState` + `clock: VectorClock`. What the sync needs;
+  the same type is used for full states and deltas.
 - `SyncMessage<D>` - sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
   with `SyncMessage.serializer(deltaSerializer)`.
-- `SyncEngine<D : Delta<D>>` - client WebSocket engine. Constructor takes a
+- `SyncEngine<D : ClockedState<D>>` - client WebSocket engine. Constructor takes a
   `KSerializer<D>`, four suspending callbacks (`onRemoteDelta`,
   `getPendingDelta`, `restorePendingDelta`, `getLocalClock`), and an optional
   `SyncLogger` (defaults to `Noop`). `stop()` is suspending and joins the
@@ -60,21 +61,21 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - `SyncStatus` - `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
 - `DeltaBuffer<D>` - mutex-guarded outbox holding one merged pending delta
   (`record`, `flush`). A failed push is simply recorded again.
-- `com.doppio.syncdo.sync.server.SyncServer<S : DeltaState<S, D>, D : Delta<D>>`
+- `com.doppio.syncdo.sync.server.SyncServer<S : ClockedState<S>>`
   (jvmMain) - authoritative state + bounded `DeltaLog` + mutex. Optional
   `onStateChanged` constructor hook fires inside the mutex after every merge
   (used by the sample `:server` for disk persistence).
 - `Route.syncEndpoint(server, deltaSerializer, path = "/sync")` (jvmMain) -
   Ktor WebSocket handler; broadcasts pushes to peers, prunes peers whose send
-  fails, answers pulls with missed deltas, falls back to full-state delta if
-  the log doesn't reach the client's clock.
+  fails, answers pulls with missed deltas, sends the full state if
+  the log doesn't reach the client's clock, and nothing if the client is up to date.
 
 ## Sample data flow (Todo)
 
 1. User action → `TodoViewModel` → `TodoRepository.addTodo(...)`.
 2. `OfflineFirstTodoRepository` updates local `TodoListCrdt`, persists JSON via
-   `JsonFileStorage`, records a `TodoListDelta` in its `DeltaBuffer`.
-3. `SyncEngine<TodoListDelta>` pushes buffered delta over WebSocket.
+   `JsonFileStorage`, records the delta (a small `TodoListCrdt`) in its `DeltaBuffer`.
+3. `SyncEngine<TodoListCrdt>` pushes buffered delta over WebSocket.
 4. `:server` → `SyncServer.mergeDelta(...)` → broadcast `PullResponse` to peers.
 5. Peers' `onRemoteDelta` callback → `repository.mergeRemoteDelta(...)` → state
    update + re-persist.

@@ -1,8 +1,7 @@
 package com.doppio.syncdo.sync.server
 
-import com.doppio.syncdo.crdt.Delta
-import com.doppio.syncdo.crdt.DeltaState
 import com.doppio.syncdo.crdt.VectorClock
+import com.doppio.syncdo.sync.ClockedState
 import com.doppio.syncdo.sync.SyncMessage
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
@@ -23,36 +22,20 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+/** Max-register: enough to observe what the server forwards. Also used as delta. */
 @Serializable
 data class CounterState(
     override val clock: VectorClock = VectorClock(),
     val value: Int = 0,
-) : DeltaState<CounterState, CounterDelta> {
+) : ClockedState<CounterState> {
     override fun merge(other: CounterState): CounterState = CounterState(
         clock = clock.merge(other.clock),
         value = maxOf(value, other.value),
     )
-
-    override fun applyDelta(delta: CounterDelta): CounterState = merge(
-        CounterState(clock = delta.clock, value = delta.value),
-    )
-}
-
-@Serializable
-data class CounterDelta(
-    override val clock: VectorClock,
-    val value: Int,
-) : Delta<CounterDelta> {
-    override fun merge(other: CounterDelta): CounterDelta = CounterDelta(
-        clock = clock.merge(other.clock),
-        value = maxOf(value, other.value),
-    )
-
-    override fun isEmpty(): Boolean = value == 0 && clock.entries.isEmpty()
 }
 
 private val json = Json { ignoreUnknownKeys = true }
-private val msg = SyncMessage.serializer(CounterDelta.serializer())
+private val msg = SyncMessage.serializer(CounterState.serializer())
 
 class SyncRouteTest {
 
@@ -60,23 +43,23 @@ class SyncRouteTest {
     fun pushFromOneClientBroadcastsToOthers() = testApplication {
         application {
             install(ServerWebSockets)
-            val server = SyncServer<CounterState, CounterDelta>(
-                initialState = { CounterState() },
-                fullStateAsDelta = { state -> CounterDelta(state.clock, state.value) },
+            val server = SyncServer(
+                // Non-empty so the receiver's first pull gets an answer to wait on.
+                initialState = CounterState(clock = VectorClock(mapOf("X" to 1L)), value = 1),
             )
             routing {
-                syncEndpoint(server, CounterDelta.serializer())
+                syncEndpoint(server, CounterState.serializer())
             }
         }
         val client = createClient { install(WebSockets) }
 
-        val broadcastReceived = CompletableDeferred<SyncMessage.PullResponse<CounterDelta>>()
+        val broadcastReceived = CompletableDeferred<SyncMessage.PullResponse<CounterState>>()
         val receiverReady = CompletableDeferred<Unit>()
 
         coroutineScope {
             val receiverJob = launch {
                 client.webSocket("/sync") {
-                    val pull: SyncMessage<CounterDelta> = SyncMessage.PullRequest(VectorClock(), "B")
+                    val pull: SyncMessage<CounterState> = SyncMessage.PullRequest(VectorClock(), "B")
                     send(Frame.Text(json.encodeToString(msg, pull)))
                     val initial = (incoming.receive() as Frame.Text).readText()
                     json.decodeFromString(msg, initial)
@@ -98,8 +81,8 @@ class SyncRouteTest {
             receiverReady.await()
 
             client.webSocket("/sync") {
-                val delta = CounterDelta(VectorClock(mapOf("A" to 1L)), value = 7)
-                val push: SyncMessage<CounterDelta> = SyncMessage.PushDelta(delta, nodeId = "A")
+                val delta = CounterState(VectorClock(mapOf("A" to 1L)), value = 7)
+                val push: SyncMessage<CounterState> = SyncMessage.PushDelta(delta, nodeId = "A")
                 send(Frame.Text(json.encodeToString(msg, push)))
                 delay(200)
             }
@@ -117,22 +100,21 @@ class SyncRouteTest {
     fun pullRequestReturnsFullStateOnEmptyClock() = testApplication {
         application {
             install(ServerWebSockets)
-            val server = SyncServer<CounterState, CounterDelta>(
-                initialState = { CounterState(clock = VectorClock(mapOf("X" to 5L)), value = 42) },
-                fullStateAsDelta = { state -> CounterDelta(state.clock, state.value) },
+            val server = SyncServer(
+                initialState = CounterState(clock = VectorClock(mapOf("X" to 5L)), value = 42),
             )
             routing {
-                syncEndpoint(server, CounterDelta.serializer())
+                syncEndpoint(server, CounterState.serializer())
             }
         }
         val client = createClient { install(WebSockets) }
 
         client.webSocket("/sync") {
-            val req: SyncMessage<CounterDelta> = SyncMessage.PullRequest(VectorClock(), "client")
+            val req: SyncMessage<CounterState> = SyncMessage.PullRequest(VectorClock(), "client")
             send(Frame.Text(json.encodeToString(msg, req)))
 
             val frame = incoming.receive() as Frame.Text
-            val decoded = json.decodeFromString(msg, frame.readText()) as SyncMessage.PullResponse<CounterDelta>
+            val decoded = json.decodeFromString(msg, frame.readText()) as SyncMessage.PullResponse<CounterState>
             assertEquals(42, decoded.delta.value)
             assertEquals(5L, decoded.delta.clock["X"])
         }

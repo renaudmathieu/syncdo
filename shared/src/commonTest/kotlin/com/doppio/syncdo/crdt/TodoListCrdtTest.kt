@@ -133,25 +133,33 @@ class TodoListCrdtTest {
         assertFalse(afterRemove.itemIds.contains("1"))
         assertTrue(afterRemove.itemIds.contains("2"))
 
-        // Re-merge with itself to verify items map is cleaned
-        val merged = afterRemove.merge(afterRemove)
-        assertFalse(merged.items.containsKey("1"))
-        assertTrue(merged.items.containsKey("2"))
+        // Merging with the original replica must not resurrect the removed todo.
+        val merged = afterRemove.merge(state)
+        assertEquals(setOf("2"), merged.itemIds.elements())
     }
 
     @Test
-    fun applyDeltaConvergesWithMerge() {
+    fun deltaIsMergedLikeAnyState() {
         val item = createItem("1", "Task", 1.0, "nodeA", 1000)
-        val base = TodoListCrdt()
-
-        val delta = TodoListDelta(
+        val delta = TodoListCrdt(
+            itemIds = OrSet<String>().addDelta("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
-            membership = OrSet<String>().addDelta("1", UniqueTag("nodeA", 1)),
             clock = VectorClock().increment("nodeA")
         )
 
-        val viaApply = base.applyDelta(delta)
-        assertTrue(viaApply.itemIds.contains("1"))
-        assertEquals("Task", viaApply.items["1"]!!.title.value)
+        val merged = TodoListCrdt().merge(delta)
+        assertTrue(merged.itemIds.contains("1"))
+        assertEquals("Task", merged.items["1"]!!.title.value)
+    }
+
+    @Test
+    fun mergingTwoItemOnlyDeltasKeepsBothUpdates() {
+        // Deltas that only touch item data (no membership change) are buffered together:
+        // merging them must not drop the item data.
+        val titleEdit = TodoListCrdt(items = mapOf("1" to createItem("1", "New title", 1.0, "nodeA", 2000)))
+        val otherEdit = TodoListCrdt(items = mapOf("2" to createItem("2", "Other", 2.0, "nodeA", 2000)))
+
+        val buffered = titleEdit.merge(otherEdit)
+        assertEquals(setOf("1", "2"), buffered.items.keys)
     }
 }
