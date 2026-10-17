@@ -25,6 +25,7 @@ dependencies {
 |---|---|---|
 | `SyncMessage<D>` | commonMain | Sealed protocol: `PushDelta`, `PullRequest`, `PullResponse`. Serialize with `SyncMessage.serializer(deltaSerializer)`. |
 | `SyncEngine<D>` | commonMain | Client: WebSocket connection, exponential backoff reconnect, pending-delta buffer, local/remote merge callbacks. |
+| `DeltaBuffer<D>` | commonMain | Outbox of local changes: `record` merges into one pending delta, `flush` takes it. Coroutine-safe. |
 | `SyncStatus` | commonMain | `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error` - observable on the engine as a `StateFlow`. |
 | `SyncServer<S, D>` | jvmMain | Server: authoritative state, bounded delta log for incremental catch-up, mutex-guarded merges. |
 | `Route.syncEndpoint(...)` | jvmMain | Ktor extension: installs the `/sync` WebSocket handler that routes `SyncMessage` traffic and broadcasts to connected peers. |

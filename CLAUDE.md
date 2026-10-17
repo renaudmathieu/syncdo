@@ -42,9 +42,9 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - `CrdtState<T>` - base interface with `merge`.
 - `Delta<D>` - partial change with `clock`, `merge`, `isEmpty`.
 - `DeltaState<S, D>` - `CrdtState` that supports `applyDelta(delta)`.
-- `VectorClock`, `LwwRegister<T>` (uses `kotlin.time.Instant`), `OrSet<E>`,
-  `DeltaBuffer<D>`.
-- All types `@Serializable`.
+- `VectorClock`, `LwwRegister<T>` (uses `kotlin.time.Instant`), `OrSet<E>`
+  (`addDelta` / `removeDelta` return the change as a small `OrSet`).
+- All types `@Serializable`. No coroutines dependency.
 
 ### `:sync`
 
@@ -58,6 +58,8 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - `SyncLogger` - `fun interface` sink for diagnostics. Replaces all internal
   `println` calls.
 - `SyncStatus` - `Synced` / `Syncing` / `PendingChanges` / `Offline` / `Error`.
+- `DeltaBuffer<D>` - mutex-guarded outbox holding one merged pending delta
+  (`record`, `flush`). A failed push is simply recorded again.
 - `com.doppio.syncdo.sync.server.SyncServer<S : DeltaState<S, D>, D : Delta<D>>`
   (jvmMain) - authoritative state + bounded `DeltaLog` + mutex. Optional
   `onStateChanged` constructor hook fires inside the mutex after every merge

@@ -9,7 +9,7 @@ Licensed under [Apache 2.0](LICENSE).
 ### Published libraries
 
 - [**`:crdt`**](crdt/README.md) - `com.doppio.syncdo:crdt` - generic CRDT primitives
-  (`VectorClock`, `LwwRegister`, `OrSet`, `Delta`/`DeltaState`, `DeltaBuffer`).
+  (`VectorClock`, `LwwRegister`, `OrSet`, `Delta`/`DeltaState`).
 - [**`:sync`**](sync/README.md) - `com.doppio.syncdo:sync` - generic WebSocket sync
   engine + Ktor server routing. Parameterized on any `Delta<D>` from `:crdt`.
 

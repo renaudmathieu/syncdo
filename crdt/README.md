@@ -30,7 +30,6 @@ dependencies {
 | `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. `addDelta` / `removeDelta` return the change as a small `OrSet`. |
 | `Delta<D>` | Partial change that can be merged + shipped over the wire. |
 | `DeltaState<S, D>` | CRDT state that supports delta-based sync via `applyDelta(delta)`. |
-| `DeltaBuffer<D>` | Accumulates local mutations until they can be pushed (thread-safe via an internal mutex; methods are `suspend`). |
 
 ### When to use which
 

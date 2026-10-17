@@ -4,6 +4,7 @@ import com.doppio.syncdo.crdt.*
 import com.doppio.syncdo.model.TodoItem
 import com.doppio.syncdo.model.toModel
 import com.doppio.syncdo.persistence.LocalStorage
+import com.doppio.syncdo.sync.DeltaBuffer
 import com.doppio.syncdo.sync.SyncEngine
 import com.doppio.syncdo.sync.SyncStatus
 import kotlinx.coroutines.CoroutineScope
@@ -127,7 +128,7 @@ class OfflineFirstTodoRepository(
 
     suspend fun getPendingDelta(): TodoListDelta? = deltaBuffer.flush()
 
-    suspend fun restorePendingDelta(delta: TodoListDelta) = deltaBuffer.restore(delta)
+    suspend fun restorePendingDelta(delta: TodoListDelta) = deltaBuffer.record(delta)
 
     fun getLocalClock(): VectorClock = crdtState.value.clock
 

@@ -8,13 +8,6 @@ public abstract interface class com/doppio/syncdo/crdt/Delta {
 	public abstract fun merge (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/Delta;
 }
 
-public final class com/doppio/syncdo/crdt/DeltaBuffer {
-	public fun <init> ()V
-	public final fun flush (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun record (Lcom/doppio/syncdo/crdt/Delta;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun restore (Lcom/doppio/syncdo/crdt/Delta;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
 public abstract interface class com/doppio/syncdo/crdt/DeltaState : com/doppio/syncdo/crdt/CrdtState {
 	public abstract fun applyDelta (Lcom/doppio/syncdo/crdt/Delta;)Lcom/doppio/syncdo/crdt/DeltaState;
 	public abstract fun getClock ()Lcom/doppio/syncdo/crdt/VectorClock;
