@@ -7,6 +7,7 @@ import com.doppio.syncdo.persistence.LocalStorage
 import com.doppio.syncdo.sync.SyncEngine
 import com.doppio.syncdo.sync.SyncStatus
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -27,7 +28,7 @@ class OfflineFirstTodoRepository(
     private val deltaBuffer = DeltaBuffer<TodoListDelta>()
     private var tagCounter = initialState.clock[nodeId]
     private var syncEngine: SyncEngine<TodoListDelta>? = null
-    private var statusCollectionJob: kotlinx.coroutines.Job? = null
+    private var statusCollectionJob: Job? = null
 
     override val todos: StateFlow<List<TodoItem>> = crdtState
         .map { it.toTodoItems() }
@@ -56,11 +57,13 @@ class OfflineFirstTodoRepository(
         val (newIds, membershipDelta) = currentState.itemIds.addWithDelta(id, nodeId, nextTagCounter())
         val newClock = currentState.clock.increment(nodeId)
 
-        deltaBuffer.record(TodoListDelta(
-            items = mapOf(id to item),
-            membership = membershipDelta,
-            clock = newClock,
-        ))
+        deltaBuffer.record(
+            TodoListDelta(
+                items = mapOf(id to item),
+                membership = membershipDelta,
+                clock = newClock,
+            )
+        )
         currentState.copy(
             itemIds = newIds,
             items = currentState.items + (id to item),
@@ -73,10 +76,12 @@ class OfflineFirstTodoRepository(
         if (membershipDelta.isEmpty()) return@mutate currentState
         val newClock = currentState.clock.increment(nodeId)
 
-        deltaBuffer.record(TodoListDelta(
-            membership = membershipDelta,
-            clock = newClock,
-        ))
+        deltaBuffer.record(
+            TodoListDelta(
+                membership = membershipDelta,
+                clock = newClock,
+            )
+        )
         currentState.copy(itemIds = newIds, clock = newClock)
     }
 
@@ -98,10 +103,12 @@ class OfflineFirstTodoRepository(
             val updated = item.transform()
             val newClock = currentState.clock.increment(nodeId)
 
-            deltaBuffer.record(TodoListDelta(
-                items = mapOf(id to updated),
-                clock = newClock,
-            ))
+            deltaBuffer.record(
+                TodoListDelta(
+                    items = mapOf(id to updated),
+                    clock = newClock,
+                )
+            )
             currentState.copy(
                 items = currentState.items + (id to updated),
                 clock = newClock,
@@ -126,7 +133,7 @@ class OfflineFirstTodoRepository(
 
     private suspend fun mutate(block: suspend (TodoListCrdt) -> TodoListCrdt) {
         mutex.withLock {
-            crdtState.value = block(crdtState.value)
+            crdtState.update { block(crdtState.value) }
             storage.save(crdtState.value)
         }
         syncEngine?.pushPendingDelta()
