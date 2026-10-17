@@ -47,7 +47,7 @@ fun Application.module() {
         fullStateAsDelta = { state ->
             TodoListDelta(
                 items = state.items,
-                membership = state.itemIds.toDelta(),
+                membership = state.itemIds,
                 clock = state.clock,
             )
         },

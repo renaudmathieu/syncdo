@@ -11,10 +11,6 @@ plugins {
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xexplicit-backing-fields")
-    }
-
     androidTarget {
         publishLibraryVariants("release")
         compilerOptions {

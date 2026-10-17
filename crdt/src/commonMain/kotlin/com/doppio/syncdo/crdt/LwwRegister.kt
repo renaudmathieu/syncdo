@@ -11,6 +11,10 @@ import kotlinx.serialization.Serializable
  * Use for single-cell fields where "most recent edit wins" is the right
  * semantic (title, note, completion flag). For collections where concurrent
  * adds should both survive, prefer [OrSet] instead.
+ *
+ * Assumption: a node never writes two different values at the same instant, so the
+ * pair ([timestamp], [nodeId]) identifies a write. If it did, [merge] would no longer
+ * be commutative and replicas could keep different values.
  */
 @Serializable
 data class LwwRegister<T>(

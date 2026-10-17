@@ -2,7 +2,6 @@ package com.doppio.syncdo.crdt
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 class MapMergeTest {
 
@@ -12,14 +11,6 @@ class MapMergeTest {
         val b = mapOf("y" to 10, "z" to 100)
         val merged = a.mergeValues(b) { lhs, rhs -> lhs + rhs }
         assertEquals(mapOf("x" to 1, "y" to 12, "z" to 100), merged)
-    }
-
-    @Test
-    fun mergeValuesShortCircuitsOnEmpty() {
-        val nonEmpty = mapOf("x" to 1)
-        val empty = emptyMap<String, Int>()
-        assertSame(nonEmpty, empty.mergeValues(nonEmpty) { _, _ -> error("should not be called") })
-        assertSame(nonEmpty, nonEmpty.mergeValues(empty) { _, _ -> error("should not be called") })
     }
 
     @Test

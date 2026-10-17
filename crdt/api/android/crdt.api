@@ -55,8 +55,6 @@ public final class com/doppio/syncdo/crdt/LwwRegister$Companion {
 
 public final class com/doppio/syncdo/crdt/MapMergeKt {
 	public static final fun mergeStates (Ljava/util/Map;Ljava/util/Map;)Ljava/util/Map;
-	public static final fun mergeValues (Ljava/util/Map;Ljava/util/Map;Lkotlin/jvm/functions/Function2;)Ljava/util/Map;
-	public static final fun unionValues (Ljava/util/Map;Ljava/util/Map;)Ljava/util/Map;
 }
 
 public final class com/doppio/syncdo/crdt/OrSet : com/doppio/syncdo/crdt/CrdtState {
@@ -64,9 +62,8 @@ public final class com/doppio/syncdo/crdt/OrSet : com/doppio/syncdo/crdt/CrdtSta
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
 	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun add (Ljava/lang/Object;Ljava/lang/String;J)Lcom/doppio/syncdo/crdt/OrSet;
-	public final fun addWithDelta (Ljava/lang/Object;Ljava/lang/String;J)Lkotlin/Pair;
-	public final fun applyDelta (Lcom/doppio/syncdo/crdt/OrSetDelta;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun add (Ljava/lang/Object;Lcom/doppio/syncdo/crdt/UniqueTag;)Lcom/doppio/syncdo/crdt/OrSet;
+	public final fun addDelta (Ljava/lang/Object;Lcom/doppio/syncdo/crdt/UniqueTag;)Lcom/doppio/syncdo/crdt/OrSet;
 	public final fun component1 ()Ljava/util/Map;
 	public final fun component2 ()Ljava/util/Map;
 	public final fun contains (Ljava/lang/Object;)Z
@@ -77,11 +74,11 @@ public final class com/doppio/syncdo/crdt/OrSet : com/doppio/syncdo/crdt/CrdtSta
 	public final fun getEntries ()Ljava/util/Map;
 	public final fun getTombstones ()Ljava/util/Map;
 	public fun hashCode ()I
+	public final fun isEmpty ()Z
 	public synthetic fun merge (Lcom/doppio/syncdo/crdt/CrdtState;)Lcom/doppio/syncdo/crdt/CrdtState;
 	public fun merge (Lcom/doppio/syncdo/crdt/OrSet;)Lcom/doppio/syncdo/crdt/OrSet;
 	public final fun remove (Ljava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSet;
-	public final fun removeWithDelta (Ljava/lang/Object;)Lkotlin/Pair;
-	public final fun toDelta ()Lcom/doppio/syncdo/crdt/OrSetDelta;
+	public final fun removeDelta (Ljava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSet;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -97,39 +94,6 @@ public final synthetic class com/doppio/syncdo/crdt/OrSet$$serializer : kotlinx/
 }
 
 public final class com/doppio/syncdo/crdt/OrSet$Companion {
-	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/doppio/syncdo/crdt/OrSetDelta {
-	public static final field Companion Lcom/doppio/syncdo/crdt/OrSetDelta$Companion;
-	public fun <init> ()V
-	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
-	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/util/Map;
-	public final fun component2 ()Ljava/util/Map;
-	public final fun copy (Ljava/util/Map;Ljava/util/Map;)Lcom/doppio/syncdo/crdt/OrSetDelta;
-	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/OrSetDelta;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/OrSetDelta;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getAddedTags ()Ljava/util/Map;
-	public final fun getRemovedTags ()Ljava/util/Map;
-	public fun hashCode ()I
-	public final fun isEmpty ()Z
-	public final fun merge (Lcom/doppio/syncdo/crdt/OrSetDelta;)Lcom/doppio/syncdo/crdt/OrSetDelta;
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/doppio/syncdo/crdt/OrSetDelta$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public fun <init> (Lkotlinx/serialization/KSerializer;)V
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/doppio/syncdo/crdt/OrSetDelta;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/doppio/syncdo/crdt/OrSetDelta;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public final fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/doppio/syncdo/crdt/OrSetDelta$Companion {
 	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
 }
 
@@ -170,7 +134,6 @@ public final class com/doppio/syncdo/crdt/VectorClock : com/doppio/syncdo/crdt/C
 	public final fun component1 ()Ljava/util/Map;
 	public final fun copy (Ljava/util/Map;)Lcom/doppio/syncdo/crdt/VectorClock;
 	public static synthetic fun copy$default (Lcom/doppio/syncdo/crdt/VectorClock;Ljava/util/Map;ILjava/lang/Object;)Lcom/doppio/syncdo/crdt/VectorClock;
-	public final fun dominates (Lcom/doppio/syncdo/crdt/VectorClock;)Z
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun get (Ljava/lang/String;)J
 	public final fun getEntries ()Ljava/util/Map;

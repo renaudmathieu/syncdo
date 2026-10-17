@@ -27,7 +27,7 @@ dependencies {
 | `CrdtState<T>` | Base interface - the `merge` operation must be commutative, associative, idempotent. |
 | `VectorClock` | Logical timestamps per node for causal ordering across distributed writes. |
 | `LwwRegister<T>` | Last-writer-wins register, tie-broken by node ID. Uses `kotlin.time.Instant`. |
-| `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. |
+| `OrSet<E>` | Observed-Remove Set. Concurrent add + remove → add wins. `addDelta` / `removeDelta` return the change as a small `OrSet`. |
 | `Delta<D>` | Partial change that can be merged + shipped over the wire. |
 | `DeltaState<S, D>` | CRDT state that supports delta-based sync via `applyDelta(delta)`. |
 | `DeltaBuffer<D>` | Accumulates local mutations until they can be pushed (thread-safe via an internal mutex; methods are `suspend`). |
@@ -43,6 +43,10 @@ dependencies {
 
 ## Quickstart - build your own CRDT aggregate
 
+A grow-only counter (G-Counter): each node only increments its own entry, and
+merge takes the max per node. The delta carries per-node *totals*, not increments,
+so applying the same delta twice is harmless (idempotence).
+
 ```kotlin
 import com.doppio.syncdo.crdt.*
 import kotlinx.serialization.Serializable
@@ -50,26 +54,33 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CounterDelta(
     override val clock: VectorClock,
-    val nodeId: NodeId,
-    val amount: Long,
+    val counts: Map<NodeId, Long>,
 ) : Delta<CounterDelta> {
     override fun merge(other: CounterDelta) =
-        CounterDelta(clock.merge(other.clock), nodeId, amount + other.amount)
+        CounterDelta(clock.merge(other.clock), maxPerNode(counts, other.counts))
 
-    override fun isEmpty(): Boolean = amount == 0L
+    override fun isEmpty(): Boolean = counts.isEmpty()
 }
 
 @Serializable
 data class Counter(
     override val clock: VectorClock = VectorClock(),
-    val value: Long = 0L,
+    val counts: Map<NodeId, Long> = emptyMap(),
 ) : DeltaState<Counter, CounterDelta> {
+    val value: Long get() = counts.values.sum()
+
+    fun incrementDelta(nodeId: NodeId) =
+        CounterDelta(clock.increment(nodeId), mapOf(nodeId to (counts[nodeId] ?: 0L) + 1))
+
     override fun merge(other: Counter) =
-        Counter(clock.merge(other.clock), maxOf(value, other.value))
+        Counter(clock.merge(other.clock), maxPerNode(counts, other.counts))
 
     override fun applyDelta(delta: CounterDelta) =
-        Counter(clock.merge(delta.clock), value + delta.amount)
+        Counter(clock.merge(delta.clock), maxPerNode(counts, delta.counts))
 }
+
+private fun maxPerNode(a: Map<NodeId, Long>, b: Map<NodeId, Long>): Map<NodeId, Long> =
+    (a.keys + b.keys).associateWith { maxOf(a[it] ?: 0L, b[it] ?: 0L) }
 ```
 
 Pair this with [`com.doppio.syncdo:sync`](../sync/README.md) to get an offline-first
@@ -81,6 +92,8 @@ sync engine and Ktor server endpoint for free.
   format; binary formats work too.
 - `LwwRegister` uses `kotlin.time.Instant` (stdlib, Kotlin 2.1+) - no extra
   datetime dependency required.
-- `OrSet` is the more subtle of the two registers. Add operations attach a fresh
-  unique tag per mutation; remove tombstones only the tags observed at remove
-  time. This is what gives concurrent add-vs-remove the "add wins" semantics.
+- `OrSet` is the most subtle type. Each add attaches a fresh unique tag; a remove
+  tombstones only the tags observed at remove time. This is what gives concurrent
+  add-vs-remove the "add wins" semantics. Tombstones are never garbage collected.
+- Deltas are states: `OrSet.addDelta` / `removeDelta` return a small `OrSet` holding
+  only the change. Apply it locally with `merge` and ship the same value to peers.

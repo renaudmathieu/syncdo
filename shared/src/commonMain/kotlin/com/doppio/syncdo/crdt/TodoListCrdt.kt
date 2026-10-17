@@ -33,7 +33,7 @@ data class TodoListCrdt(
 
     override fun applyDelta(delta: TodoListDelta): TodoListCrdt = merge(
         TodoListCrdt(
-            itemIds = OrSet<String>().applyDelta(delta.membership),
+            itemIds = delta.membership,
             items = delta.items,
             clock = delta.clock,
         )

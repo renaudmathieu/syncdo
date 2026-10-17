@@ -58,28 +58,6 @@ class VectorClockTest {
     }
 
     @Test
-    fun dominatesWhenStrictlyGreater() {
-        val a = VectorClock(mapOf("A" to 3L, "B" to 2L))
-        val b = VectorClock(mapOf("A" to 1L, "B" to 1L))
-        assertTrue(a.dominates(b))
-        assertFalse(b.dominates(a))
-    }
-
-    @Test
-    fun doesNotDominateWhenEqual() {
-        val a = VectorClock(mapOf("A" to 3L))
-        assertFalse(a.dominates(a))
-    }
-
-    @Test
-    fun doesNotDominateWhenConcurrent() {
-        val a = VectorClock(mapOf("A" to 3L, "B" to 1L))
-        val b = VectorClock(mapOf("A" to 1L, "B" to 5L))
-        assertFalse(a.dominates(b))
-        assertFalse(b.dominates(a))
-    }
-
-    @Test
     fun isLessThanOrEqual() {
         val a = VectorClock(mapOf("A" to 1L, "B" to 1L))
         val b = VectorClock(mapOf("A" to 3L, "B" to 2L))

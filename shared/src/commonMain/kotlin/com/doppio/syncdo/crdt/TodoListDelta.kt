@@ -9,13 +9,14 @@ import kotlinx.serialization.Serializable
  * `:crdt`:
  * - [items]: a map of [TodoItemCrdt] updates, merged field-by-field via
  *   [mergeStates] (maps of CRDTs are themselves CRDTs).
- * - [membership]: an [OrSetDelta] carrying add/remove tags for item IDs.
+ * - [membership]: a small [OrSet] holding the add/remove tags for item IDs
+ *   (an OR-Set delta is just an OR-Set).
  * - [clock]: the outer causal clock shared by the whole delta.
  */
 @Serializable
 data class TodoListDelta(
     val items: Map<String, TodoItemCrdt> = emptyMap(),
-    val membership: OrSetDelta<String> = OrSetDelta(),
+    val membership: OrSet<String> = OrSet(),
     override val clock: VectorClock = VectorClock()
 ) : Delta<TodoListDelta> {
 

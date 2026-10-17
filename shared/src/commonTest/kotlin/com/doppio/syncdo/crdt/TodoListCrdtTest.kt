@@ -19,12 +19,12 @@ class TodoListCrdtTest {
         val item2 = createItem("2", "Task B", 2.0, "nodeB", 2000)
 
         val replicaA = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item1),
             clock = VectorClock().increment("nodeA")
         )
         val replicaB = TodoListCrdt(
-            itemIds = OrSet<String>().add("2", "nodeB", 1),
+            itemIds = OrSet<String>().add("2", UniqueTag("nodeB", 1)),
             items = mapOf("2" to item2),
             clock = VectorClock().increment("nodeB")
         )
@@ -39,7 +39,7 @@ class TodoListCrdtTest {
     fun mergeResolvesConflictOnSameItem() {
         val item = createItem("1", "Original", 1.0, "nodeA", 1000)
         val base = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
             clock = VectorClock().increment("nodeA")
         )
@@ -66,7 +66,7 @@ class TodoListCrdtTest {
     fun mergeHandlesConcurrentAddAndRemove() {
         val item = createItem("1", "Task", 1.0, "nodeA", 1000)
         val base = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
             clock = VectorClock().increment("nodeA")
         )
@@ -79,7 +79,7 @@ class TodoListCrdtTest {
 
         // Device B re-adds the same item (new tag) concurrently
         val replicaB = base.copy(
-            itemIds = base.itemIds.add("1", "nodeB", 1),
+            itemIds = base.itemIds.add("1", UniqueTag("nodeB", 1)),
             clock = base.clock.increment("nodeB")
         )
 
@@ -93,12 +93,12 @@ class TodoListCrdtTest {
         val item2 = createItem("2", "B", 2.0, "nodeB", 2000)
 
         val a = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item1),
             clock = VectorClock().increment("nodeA")
         )
         val b = TodoListCrdt(
-            itemIds = OrSet<String>().add("2", "nodeB", 1),
+            itemIds = OrSet<String>().add("2", UniqueTag("nodeB", 1)),
             items = mapOf("2" to item2),
             clock = VectorClock().increment("nodeB")
         )
@@ -119,8 +119,8 @@ class TodoListCrdtTest {
 
         val state = TodoListCrdt(
             itemIds = OrSet<String>()
-                .add("1", "nodeA", 1)
-                .add("2", "nodeA", 2),
+                .add("1", UniqueTag("nodeA", 1))
+                .add("2", UniqueTag("nodeA", 2)),
             items = mapOf("1" to item1, "2" to item2),
             clock = VectorClock().increment("nodeA").increment("nodeA")
         )
@@ -146,7 +146,7 @@ class TodoListCrdtTest {
 
         val delta = TodoListDelta(
             items = mapOf("1" to item),
-            membership = OrSetDelta(addedTags = mapOf("1" to setOf(UniqueTag("nodeA", 1)))),
+            membership = OrSet<String>().addDelta("1", UniqueTag("nodeA", 1)),
             clock = VectorClock().increment("nodeA")
         )
 

@@ -26,7 +26,6 @@ class OfflineFirstTodoRepository(
     private val mutex = Mutex()
     private val crdtState = MutableStateFlow(initialState)
     private val deltaBuffer = DeltaBuffer<TodoListDelta>()
-    private var tagCounter = initialState.clock[nodeId]
     private var syncEngine: SyncEngine<TodoListDelta>? = null
     private var statusCollectionJob: Job? = null
 
@@ -54,8 +53,9 @@ class OfflineFirstTodoRepository(
         val id = Uuid.random().toString()
         val now = Clock.System.now()
         val item = TodoItemCrdt.create(id, title, nextPosition(currentState), nodeId, now)
-        val (newIds, membershipDelta) = currentState.itemIds.addWithDelta(id, nodeId, nextTagCounter())
         val newClock = currentState.clock.increment(nodeId)
+        // Our own clock entry never repeats, so it doubles as a unique tag counter.
+        val membershipDelta = currentState.itemIds.addDelta(id, UniqueTag(nodeId, newClock[nodeId]))
 
         deltaBuffer.record(
             TodoListDelta(
@@ -65,14 +65,14 @@ class OfflineFirstTodoRepository(
             )
         )
         currentState.copy(
-            itemIds = newIds,
+            itemIds = currentState.itemIds.merge(membershipDelta),
             items = currentState.items + (id to item),
             clock = newClock,
         )
     }
 
     override suspend fun removeTodo(id: String) = mutate { currentState ->
-        val (newIds, membershipDelta) = currentState.itemIds.removeWithDelta(id)
+        val membershipDelta = currentState.itemIds.removeDelta(id)
         if (membershipDelta.isEmpty()) return@mutate currentState
         val newClock = currentState.clock.increment(nodeId)
 
@@ -82,7 +82,7 @@ class OfflineFirstTodoRepository(
                 clock = newClock,
             )
         )
-        currentState.copy(itemIds = newIds, clock = newClock)
+        currentState.copy(itemIds = currentState.itemIds.merge(membershipDelta), clock = newClock)
     }
 
     override suspend fun toggleCompleted(id: String) =
@@ -145,11 +145,6 @@ class OfflineFirstTodoRepository(
             .maxOfOrNull { it.position.value }
             ?: 0.0
         return maxPos + 1.0
-    }
-
-    private fun nextTagCounter(): Long {
-        tagCounter++
-        return tagCounter
     }
 
     private fun TodoListCrdt.toTodoItems(): List<TodoItem> =
