@@ -19,12 +19,12 @@ class TodoListCrdtTest {
         val item2 = createItem("2", "Task B", 2.0, "nodeB", 2000)
 
         val replicaA = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item1),
             clock = VectorClock().increment("nodeA")
         )
         val replicaB = TodoListCrdt(
-            itemIds = OrSet<String>().add("2", "nodeB", 1),
+            itemIds = OrSet<String>().add("2", UniqueTag("nodeB", 1)),
             items = mapOf("2" to item2),
             clock = VectorClock().increment("nodeB")
         )
@@ -39,7 +39,7 @@ class TodoListCrdtTest {
     fun mergeResolvesConflictOnSameItem() {
         val item = createItem("1", "Original", 1.0, "nodeA", 1000)
         val base = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
             clock = VectorClock().increment("nodeA")
         )
@@ -66,7 +66,7 @@ class TodoListCrdtTest {
     fun mergeHandlesConcurrentAddAndRemove() {
         val item = createItem("1", "Task", 1.0, "nodeA", 1000)
         val base = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
             clock = VectorClock().increment("nodeA")
         )
@@ -79,7 +79,7 @@ class TodoListCrdtTest {
 
         // Device B re-adds the same item (new tag) concurrently
         val replicaB = base.copy(
-            itemIds = base.itemIds.add("1", "nodeB", 1),
+            itemIds = base.itemIds.add("1", UniqueTag("nodeB", 1)),
             clock = base.clock.increment("nodeB")
         )
 
@@ -93,12 +93,12 @@ class TodoListCrdtTest {
         val item2 = createItem("2", "B", 2.0, "nodeB", 2000)
 
         val a = TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "nodeA", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item1),
             clock = VectorClock().increment("nodeA")
         )
         val b = TodoListCrdt(
-            itemIds = OrSet<String>().add("2", "nodeB", 1),
+            itemIds = OrSet<String>().add("2", UniqueTag("nodeB", 1)),
             items = mapOf("2" to item2),
             clock = VectorClock().increment("nodeB")
         )
@@ -119,8 +119,8 @@ class TodoListCrdtTest {
 
         val state = TodoListCrdt(
             itemIds = OrSet<String>()
-                .add("1", "nodeA", 1)
-                .add("2", "nodeA", 2),
+                .add("1", UniqueTag("nodeA", 1))
+                .add("2", UniqueTag("nodeA", 2)),
             items = mapOf("1" to item1, "2" to item2),
             clock = VectorClock().increment("nodeA").increment("nodeA")
         )
@@ -133,25 +133,33 @@ class TodoListCrdtTest {
         assertFalse(afterRemove.itemIds.contains("1"))
         assertTrue(afterRemove.itemIds.contains("2"))
 
-        // Re-merge with itself to verify items map is cleaned
-        val merged = afterRemove.merge(afterRemove)
-        assertFalse(merged.items.containsKey("1"))
-        assertTrue(merged.items.containsKey("2"))
+        // Merging with the original replica must not resurrect the removed todo.
+        val merged = afterRemove.merge(state)
+        assertEquals(setOf("2"), merged.itemIds.elements())
     }
 
     @Test
-    fun applyDeltaConvergesWithMerge() {
+    fun deltaIsMergedLikeAnyState() {
         val item = createItem("1", "Task", 1.0, "nodeA", 1000)
-        val base = TodoListCrdt()
-
-        val delta = TodoListDelta(
+        val delta = TodoListCrdt(
+            itemIds = OrSet<String>().addDelta("1", UniqueTag("nodeA", 1)),
             items = mapOf("1" to item),
-            membership = OrSetDelta(addedTags = mapOf("1" to setOf(UniqueTag("nodeA", 1)))),
             clock = VectorClock().increment("nodeA")
         )
 
-        val viaApply = base.applyDelta(delta)
-        assertTrue(viaApply.itemIds.contains("1"))
-        assertEquals("Task", viaApply.items["1"]!!.title.value)
+        val merged = TodoListCrdt().merge(delta)
+        assertTrue(merged.itemIds.contains("1"))
+        assertEquals("Task", merged.items["1"]!!.title.value)
+    }
+
+    @Test
+    fun mergingTwoItemOnlyDeltasKeepsBothUpdates() {
+        // Deltas that only touch item data (no membership change) are buffered together:
+        // merging them must not drop the item data.
+        val titleEdit = TodoListCrdt(items = mapOf("1" to createItem("1", "New title", 1.0, "nodeA", 2000)))
+        val otherEdit = TodoListCrdt(items = mapOf("2" to createItem("2", "Other", 2.0, "nodeA", 2000)))
+
+        val buffered = titleEdit.merge(otherEdit)
+        assertEquals(setOf("1", "2"), buffered.items.keys)
     }
 }

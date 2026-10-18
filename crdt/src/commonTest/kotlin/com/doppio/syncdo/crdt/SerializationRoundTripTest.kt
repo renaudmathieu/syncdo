@@ -42,22 +42,10 @@ class SerializationRoundTripTest {
     @Test
     fun orSetRoundTrip() {
         val original = OrSet<String>()
-            .add("a", "nodeA", 1)
-            .add("b", "nodeB", 2)
+            .add("a", UniqueTag("nodeA", 1))
+            .add("b", UniqueTag("nodeB", 2))
             .remove("a")
         val serializer = OrSet.serializer(String.serializer())
-        val text = json.encodeToString(serializer, original)
-        val decoded = json.decodeFromString(serializer, text)
-        assertEquals(original, decoded)
-    }
-
-    @Test
-    fun orSetDeltaRoundTrip() {
-        val original = OrSetDelta(
-            addedTags = mapOf("a" to setOf(UniqueTag("nodeA", 1))),
-            removedTags = mapOf("b" to setOf(UniqueTag("nodeB", 2))),
-        )
-        val serializer = OrSetDelta.serializer(String.serializer())
         val text = json.encodeToString(serializer, original)
         val decoded = json.decodeFromString(serializer, text)
         assertEquals(original, decoded)

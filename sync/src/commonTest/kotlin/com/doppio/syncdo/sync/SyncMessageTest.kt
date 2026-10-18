@@ -1,6 +1,5 @@
 package com.doppio.syncdo.sync
 
-import com.doppio.syncdo.crdt.Delta
 import com.doppio.syncdo.crdt.VectorClock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -12,11 +11,9 @@ import kotlin.test.assertTrue
 private data class FakeDelta(
     override val clock: VectorClock = VectorClock(),
     val value: Int = 0,
-) : Delta<FakeDelta> {
+) : ClockedState<FakeDelta> {
     override fun merge(other: FakeDelta) =
-        FakeDelta(clock.merge(other.clock), value + other.value)
-
-    override fun isEmpty(): Boolean = value == 0
+        FakeDelta(clock.merge(other.clock), maxOf(value, other.value))
 }
 
 class SyncMessageTest {

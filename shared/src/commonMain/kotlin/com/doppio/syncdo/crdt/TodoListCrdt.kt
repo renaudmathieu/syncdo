@@ -1,14 +1,16 @@
 package com.doppio.syncdo.crdt
 
+import com.doppio.syncdo.sync.ClockedState
 import kotlinx.serialization.Serializable
 
 /**
- * Aggregate CRDT for the entire todo list.
- * Composes an OR-Set (for membership) with a map of TodoItemCrdt (for item data).
+ * Aggregate CRDT for the entire todo list, also used as its own delta type: a delta is
+ * a small [TodoListCrdt] holding only the change (one new item, one tombstone, ...).
  *
  * Each field is handled by a generic `:crdt` operator:
- * - [itemIds] merges via [OrSet.merge];
- * - [items] merges via [mergeStates] ("map of CRDTs is a CRDT");
+ * - [itemIds] merges via [OrSet.merge]: it decides which todos are visible;
+ * - [items] merges via [mergeStates] ("map of CRDTs is a CRDT"). Data of removed todos
+ *   is kept, like OR-Set tombstones, so that merge stays a pure join;
  * - [clock] merges via [VectorClock.merge] (pointwise max).
  *
  * Composition of join-semilattices is a join-semilattice, so the aggregate
@@ -19,23 +21,11 @@ data class TodoListCrdt(
     val itemIds: OrSet<String> = OrSet(),
     val items: Map<String, TodoItemCrdt> = emptyMap(),
     override val clock: VectorClock = VectorClock()
-) : DeltaState<TodoListCrdt, TodoListDelta> {
+) : ClockedState<TodoListCrdt> {
 
-    override fun merge(other: TodoListCrdt): TodoListCrdt {
-        val mergedIds = itemIds.merge(other.itemIds)
-        val activeIds = mergedIds.elements()
-        return TodoListCrdt(
-            itemIds = mergedIds,
-            items = items.mergeStates(other.items).filterKeys { it in activeIds },
-            clock = clock.merge(other.clock),
-        )
-    }
-
-    override fun applyDelta(delta: TodoListDelta): TodoListCrdt = merge(
-        TodoListCrdt(
-            itemIds = OrSet<String>().applyDelta(delta.membership),
-            items = delta.items,
-            clock = delta.clock,
-        )
+    override fun merge(other: TodoListCrdt): TodoListCrdt = TodoListCrdt(
+        itemIds = itemIds.merge(other.itemIds),
+        items = items.mergeStates(other.items),
+        clock = clock.merge(other.clock),
     )
 }

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.vanniktechMavenPublish)
 }
 
@@ -32,7 +33,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.crdt)
-            implementation(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
@@ -72,17 +73,30 @@ android {
     }
 }
 
+dokka {
+    moduleName.set("syncdo-sync")
+    dokkaSourceSets.configureEach {
+        includes.from("Module.md")
+        reportUndocumented.set(true)
+        sourceLink {
+            localDirectory.set(file("src"))
+            remoteUrl("https://github.com/renaudmathieu/syncdo/tree/main/sync/src")
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO Sync")
         description.set(
             "Generic WebSocket sync engine + server routing for Kotlin Multiplatform " +
-                "CRDTs. Parameterized on any Delta<D> / DeltaState<S, D>."
+                "CRDTs. Parameterized on any ClockedState<S>."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/doppio/syncdo")
+        url.set("https://github.com/renaudmathieu/syncdo")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -96,9 +110,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/doppio/syncdo")
-            connection.set("scm:git:git://github.com/doppio/syncdo.git")
-            developerConnection.set("scm:git:ssh://git@github.com/doppio/syncdo.git")
+            url.set("https://github.com/renaudmathieu/syncdo")
+            connection.set("scm:git:git://github.com/renaudmathieu/syncdo.git")
+            developerConnection.set("scm:git:ssh://git@github.com/renaudmathieu/syncdo.git")
         }
     }
 }

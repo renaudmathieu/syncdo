@@ -7,14 +7,11 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.vanniktechMavenPublish)
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xexplicit-backing-fields")
-    }
-
     androidTarget {
         publishLibraryVariants("release")
         compilerOptions {
@@ -31,12 +28,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
@@ -53,17 +48,30 @@ android {
     }
 }
 
+dokka {
+    moduleName.set("syncdo-crdt")
+    dokkaSourceSets.configureEach {
+        includes.from("Module.md")
+        reportUndocumented.set(true)
+        sourceLink {
+            localDirectory.set(file("src"))
+            remoteUrl("https://github.com/renaudmathieu/syncdo/tree/main/crdt/src")
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO CRDT")
         description.set(
-            "Generic CRDT primitives for Kotlin Multiplatform: VectorClock, LwwRegister, " +
-                "Observed-Remove Set, and composable Delta/DeltaState abstractions."
+            "Generic CRDT primitives for Kotlin Multiplatform: CrdtState, VectorClock, " +
+                "LwwRegister and Observed-Remove Set, composable into your own CRDTs."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/doppio/syncdo")
+        url.set("https://github.com/renaudmathieu/syncdo")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -77,9 +85,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/doppio/syncdo")
-            connection.set("scm:git:git://github.com/doppio/syncdo.git")
-            developerConnection.set("scm:git:ssh://git@github.com/doppio/syncdo.git")
+            url.set("https://github.com/renaudmathieu/syncdo")
+            connection.set("scm:git:git://github.com/renaudmathieu/syncdo.git")
+            developerConnection.set("scm:git:ssh://git@github.com/renaudmathieu/syncdo.git")
         }
     }
 }

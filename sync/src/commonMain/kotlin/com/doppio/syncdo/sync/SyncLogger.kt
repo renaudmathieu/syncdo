@@ -1,6 +1,19 @@
 package com.doppio.syncdo.sync
 
-enum class SyncLogLevel { Debug, Info, Warn, Error }
+/** Severity of a [SyncLogger] event. */
+enum class SyncLogLevel {
+    /** Verbose details, useful while developing. */
+    Debug,
+
+    /** Normal lifecycle events. */
+    Info,
+
+    /** Recoverable problems, e.g. a lost connection that will be retried. */
+    Warn,
+
+    /** Failures the engine cannot recover from by itself. */
+    Error,
+}
 
 /**
  * Sink for diagnostic events from [SyncEngine] and the server route. The default
@@ -9,9 +22,12 @@ enum class SyncLogLevel { Debug, Info, Warn, Error }
  * activity without dragging an SLF4J dependency into common code.
  */
 fun interface SyncLogger {
+    /** Record one event; [error] is the exception that caused it, if any. */
     fun log(level: SyncLogLevel, message: String, error: Throwable?)
 
+    /** Ready-made loggers. */
     companion object {
+        /** Discards every event. */
         val Noop: SyncLogger = SyncLogger { _, _, _ -> }
     }
 }

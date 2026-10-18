@@ -2,54 +2,53 @@ package com.doppio.syncdo.crdt
 
 import kotlinx.serialization.Serializable
 
+/** Identifier of a replica (a device, a server). Must be unique and stable over time. */
 typealias NodeId = String
 
+/**
+ * Vector clock: one event counter per node, used to track causality between replicas.
+ *
+ * Each node increments only its own entry, once per local event ([increment]). Merging
+ * two clocks takes the max of each entry ([merge]): the result is the clock of a replica
+ * that has seen the events of both.
+ *
+ * Clocks are only *partially* ordered. Given two clocks `a` and `b`:
+ * - `a.isLessThanOrEqual(b)` is true when `b` has seen every event `a` has seen;
+ * - when neither `a <= b` nor `b <= a`, the clocks are *concurrent*: each replica has
+ *   seen events the other has not.
+ *
+ * ```kotlin
+ * val a = VectorClock().increment("A").increment("A") // {A=2}
+ * val b = VectorClock().increment("B")                // {B=1}
+ * a.isLessThanOrEqual(b)                              // false: a and b are concurrent
+ * a.merge(b)                                          // {A=2, B=1}
+ * ```
+ *
+ * A vector clock is itself a CRDT: [merge] is commutative, associative and idempotent.
+ *
+ * @property entries the counter of each node. A missing node counts as 0.
+ */
 @Serializable
 data class VectorClock(
     val entries: Map<NodeId, Long> = emptyMap()
 ) : CrdtState<VectorClock> {
 
+    /** The counter of [nodeId], or 0 if this clock has never seen it. */
     operator fun get(nodeId: NodeId): Long = entries.getOrElse(nodeId) { 0L }
 
-    fun increment(nodeId: NodeId): VectorClock {
-        val current = this[nodeId]
-        return copy(entries = entries + (nodeId to current + 1))
-    }
+    /** A copy of this clock where the counter of [nodeId] is increased by one. */
+    fun increment(nodeId: NodeId): VectorClock =
+        copy(entries = entries + (nodeId to this[nodeId] + 1))
 
-    override fun merge(other: VectorClock): VectorClock {
-        val allKeys = entries.keys + other.entries.keys
-        val merged = allKeys.associateWith { key ->
-            maxOf(this[key], other[key])
-        }
-        return VectorClock(merged)
-    }
+    /** The pointwise max of both clocks. */
+    override fun merge(other: VectorClock): VectorClock =
+        VectorClock((entries.keys + other.entries.keys).associateWith { maxOf(this[it], other[it]) })
 
     /**
-     * True if this clock strictly happened-after [other] (every entry >=, with
-     * at least one strictly >). Use to decide whether an event causally
-     * follows another. For "neither dominates the other" → events are
-     * concurrent; resolve via CRDT merge, not by ordering.
+     * True if every entry of this clock is <= the matching entry of [other], i.e. [other]
+     * has seen every event this clock has seen. Two concurrent clocks are each false for
+     * the other.
      */
-    fun dominates(other: VectorClock): Boolean {
-        val allKeys = entries.keys + other.entries.keys
-        var hasStrictlyGreater = false
-        for (key in allKeys) {
-            val thisVal = this[key]
-            val otherVal = other[key]
-            if (thisVal < otherVal) return false
-            if (thisVal > otherVal) hasStrictlyGreater = true
-        }
-        return hasStrictlyGreater
-    }
-
-    /**
-     * True if every entry of this clock is <= the corresponding entry in
-     * [other]. Equivalent to "[other] dominates or equals this". Used by
-     * [com.doppio.syncdo.sync.server.SyncServer]'s delta log to decide which
-     * deltas a client at [other] still needs to receive.
-     */
-    fun isLessThanOrEqual(other: VectorClock): Boolean {
-        val allKeys = entries.keys + other.entries.keys
-        return allKeys.all { key -> this[key] <= other[key] }
-    }
+    fun isLessThanOrEqual(other: VectorClock): Boolean =
+        (entries.keys + other.entries.keys).all { this[it] <= other[it] }
 }

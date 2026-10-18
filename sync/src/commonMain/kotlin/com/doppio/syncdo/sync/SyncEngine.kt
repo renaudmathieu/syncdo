@@ -1,6 +1,5 @@
 package com.doppio.syncdo.sync
 
-import com.doppio.syncdo.crdt.Delta
 import com.doppio.syncdo.crdt.NodeId
 import com.doppio.syncdo.crdt.VectorClock
 import io.ktor.client.HttpClient
@@ -26,24 +25,24 @@ import kotlinx.serialization.json.Json
  * Client-side sync engine. Maintains a WebSocket connection, requests missing deltas on
  * connect, pushes local mutations as they are buffered, and applies server broadcasts.
  *
- * Generic over the application's [Delta] type. Construct with the `KSerializer` for your
- * delta (typically `MyDelta.serializer()`).
+ * Generic over the application's [ClockedState] type, used for deltas and full states
+ * alike. Construct with its `KSerializer` (typically `MyState.serializer()`).
  *
  * **Callback contract:**
- * - [onRemoteDelta] — invoked for every incoming non-empty delta. Exceptions here cause
+ * - [onRemoteDelta]: invoked for every incoming delta. Exceptions here cause
  *   the connection to be torn down and reconnected with exponential backoff; the engine
  *   does **not** retry the delta itself, so callers should ensure their merge is
  *   idempotent under repeated delivery.
- * - [getPendingDelta] — called when a connection is established or after a local mutation.
+ * - [getPendingDelta]: called when a connection is established or after a local mutation.
  *   Should atomically read-and-clear the application's outbound buffer (returning `null`
  *   if nothing is pending). Suspending so callers can use a mutex.
- * - [restorePendingDelta] — called only if a [getPendingDelta]-returned delta failed to
- *   send. Must put the delta back at the head of the buffer; the engine will retry on
+ * - [restorePendingDelta]: called only if a [getPendingDelta]-returned delta failed to
+ *   send. Must put the delta back in the buffer; the engine will retry on
  *   the next successful connection.
- * - [getLocalClock] — read on connect to build the initial [SyncMessage.PullRequest].
+ * - [getLocalClock]: read on connect to build the initial [SyncMessage.PullRequest].
  *   Must reflect every delta the application has already applied locally.
  */
-class SyncEngine<D : Delta<D>>(
+class SyncEngine<D : ClockedState<D>>(
     deltaSerializer: KSerializer<D>,
     private val serverHost: String,
     private val serverPort: Int,
@@ -62,12 +61,18 @@ class SyncEngine<D : Delta<D>>(
         install(WebSockets)
     }
 
+    /** Current connection and sync state, for the UI. Starts as [SyncStatus.Offline]. */
     val syncStatus: StateFlow<SyncStatus>
         field = MutableStateFlow(SyncStatus.Offline)
 
     private var session: WebSocketSession? = null
     private var connectJob: Job? = null
 
+    /**
+     * Connect to the server in [scope] and keep the connection alive, reconnecting with
+     * exponential backoff (1 s up to 30 s). On each connection, pulls what was missed and
+     * pushes pending changes.
+     */
     fun start() {
         connectJob = scope.launch {
             var backoff = 1_000L
@@ -107,22 +112,17 @@ class SyncEngine<D : Delta<D>>(
 
     private suspend fun handleMessage(message: SyncMessage<D>) {
         when (message) {
-            is SyncMessage.PullResponse -> {
-                if (!message.delta.isEmpty()) {
-                    onRemoteDelta(message.delta)
-                }
-                syncStatus.update { SyncStatus.Synced }
-            }
-            is SyncMessage.PushDelta -> {
-                if (!message.delta.isEmpty()) {
-                    onRemoteDelta(message.delta)
-                }
-                syncStatus.update { SyncStatus.Synced }
-            }
-            is SyncMessage.PullRequest -> Unit // Server-bound; ignore on client.
+            is SyncMessage.PullResponse -> onRemoteDelta(message.delta)
+            is SyncMessage.PushDelta -> onRemoteDelta(message.delta)
+            is SyncMessage.PullRequest -> return // Server-bound; ignore on client.
         }
+        syncStatus.update { SyncStatus.Synced }
     }
 
+    /**
+     * Push the pending local changes now, if connected. Call it after each local mutation.
+     * When offline, the changes stay pending and are pushed on the next connection.
+     */
     suspend fun pushPendingDelta() {
         val ws = session ?: run {
             syncStatus.update { SyncStatus.PendingChanges }
@@ -140,6 +140,7 @@ class SyncEngine<D : Delta<D>>(
         }
     }
 
+    /** Disconnect and wait until the connection loop has stopped. */
     suspend fun stop() {
         connectJob?.cancelAndJoin()
         connectJob = null

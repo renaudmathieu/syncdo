@@ -2,6 +2,15 @@ package com.doppio.syncdo.crdt
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Identifies one `add` operation in an [OrSet].
+ *
+ * A tag must never be reused. A node can guarantee it with a counter that only grows,
+ * for example its own entry in a [VectorClock], incremented before each add.
+ *
+ * @property nodeId the node that performed the add.
+ * @property counter a number that [nodeId] never uses twice.
+ */
 @Serializable
 data class UniqueTag(
     val nodeId: NodeId,
@@ -9,9 +18,45 @@ data class UniqueTag(
 )
 
 /**
- * Observed-Remove Set (OR-Set) with add-wins semantics.
- * Each add attaches a unique tag. Remove tombstones only the tags observed at remove time.
- * Concurrent add + remove = add wins (the new tag survives).
+ * Observed-Remove Set (OR-Set): a set whose elements can be added and removed
+ * concurrently by several replicas, with *add-wins* semantics.
+ *
+ * ## How it works
+ *
+ * Every add attaches a fresh [UniqueTag] to the element. A remove does not erase the
+ * element: it *tombstones* the tags it has observed. An element is in the set as long as
+ * it has at least one tag that is not tombstoned.
+ *
+ * Suppose replica A removes "milk" while replica B concurrently adds "milk" again. B's add
+ * carries a tag that A's remove has never seen, so after merge that tag is still alive and
+ * "milk" stays in the set: add wins.
+ *
+ * ## Usage
+ *
+ * ```kotlin
+ * var set = OrSet<String>()
+ * set = set.add("milk", UniqueTag("A", 1))
+ * set = set.add("eggs", UniqueTag("A", 2))
+ * set = set.remove("milk")
+ * set.elements() // [eggs]
+ * ```
+ *
+ * To sync changes without sending the whole set, use [addDelta] and [removeDelta]. They
+ * return a small [OrSet] holding only the change; [add] is simply `merge(addDelta(...))`.
+ *
+ * ## Invariant
+ *
+ * [entries] only holds live tags: [merge] drops every tag found in [tombstones]. So an
+ * element is in the set if and only if it is a key of [entries].
+ *
+ * ## Limits
+ *
+ * Tombstones are never garbage collected: they grow with the number of removes.
+ *
+ * @param E the element type. With JSON, prefer types that serialize as map keys
+ *   (strings, numbers, enums).
+ * @property entries the live tags of each element in the set.
+ * @property tombstones the removed tags of each element that was ever removed.
  */
 @Serializable
 data class OrSet<E>(
@@ -19,86 +64,47 @@ data class OrSet<E>(
     val tombstones: Map<E, Set<UniqueTag>> = emptyMap()
 ) : CrdtState<OrSet<E>> {
 
-    fun add(element: E, nodeId: NodeId, counter: Long): OrSet<E> =
-        addWithDelta(element, nodeId, counter).first
+    /** True if [element] is in the set. */
+    fun contains(element: E): Boolean = element in entries
 
-    fun remove(element: E): OrSet<E> = removeWithDelta(element).first
+    /** The elements currently in the set. */
+    fun elements(): Set<E> = entries.keys
 
     /**
-     * Add [element] with a fresh tag and return both the new set and the
-     * [OrSetDelta] describing the change, so callers can ship it over the wire
-     * without re-deriving it from state.
+     * True if this set holds no tag at all, live or tombstoned. Useful to detect an empty
+     * delta; note that a set whose elements were all removed is not empty.
      */
-    fun addWithDelta(element: E, nodeId: NodeId, counter: Long): Pair<OrSet<E>, OrSetDelta<E>> {
-        val tag = UniqueTag(nodeId, counter)
-        val currentTags = entries.getOrElse(element) { emptySet() }
-        val next = copy(entries = entries + (element to (currentTags + tag)))
-        val delta = OrSetDelta(addedTags = mapOf(element to setOf(tag)))
-        return next to delta
+    fun isEmpty(): Boolean = entries.isEmpty() && tombstones.isEmpty()
+
+    /**
+     * The change "add [element] with [tag]", as a delta to [merge].
+     *
+     * @param tag a tag never used before, see [UniqueTag].
+     */
+    fun addDelta(element: E, tag: UniqueTag): OrSet<E> =
+        OrSet(entries = mapOf(element to setOf(tag)))
+
+    /**
+     * The change "remove [element]", as a delta to [merge]: it tombstones every tag this
+     * set has observed for [element]. Empty (see [isEmpty]) if [element] is not in the set.
+     */
+    fun removeDelta(element: E): OrSet<E> {
+        val observedTags = entries[element] ?: return OrSet()
+        return OrSet(tombstones = mapOf(element to observedTags))
     }
 
-    /**
-     * Remove [element] (tombstoning every tag currently observed for it) and
-     * return both the new set and the [OrSetDelta] describing the change.
-     * If [element] is not live, the returned delta is empty.
-     */
-    fun removeWithDelta(element: E): Pair<OrSet<E>, OrSetDelta<E>> {
-        val observedTags = entries.getOrElse(element) { emptySet() }
-        if (observedTags.isEmpty()) return this to OrSetDelta()
-        val currentTombstones = tombstones.getOrElse(element) { emptySet() }
-        val next = copy(
-            entries = entries - element,
-            tombstones = tombstones + (element to (currentTombstones + observedTags))
-        )
-        val delta = OrSetDelta(removedTags = mapOf(element to observedTags))
-        return next to delta
-    }
+    /** This set with [element] added. Shorthand for `merge(addDelta(element, tag))`. */
+    fun add(element: E, tag: UniqueTag): OrSet<E> = merge(addDelta(element, tag))
 
-    /**
-     * True if at least one add-tag for [element] has not been tombstoned by a
-     * subsequent remove — i.e. the element is "live" under add-wins semantics.
-     */
-    fun contains(element: E): Boolean {
-        val activeTags = entries.getOrElse(element) { emptySet() }
-        val removedTags = tombstones.getOrElse(element) { emptySet() }
-        return (activeTags - removedTags).isNotEmpty()
-    }
+    /** This set with [element] removed. Shorthand for `merge(removeDelta(element))`. */
+    fun remove(element: E): OrSet<E> = merge(removeDelta(element))
 
-    /**
-     * Currently live elements. Re-evaluated on each call: tombstones aren't
-     * removed from [entries] (they're kept for causal merge), so this filters
-     * them out lazily.
-     */
-    fun elements(): Set<E> = entries.keys.filter { contains(it) }.toSet()
-
+    /** Union of both sets: union of the tombstones, union of the tags minus the tombstoned ones. */
     override fun merge(other: OrSet<E>): OrSet<E> {
         val mergedTombstones = tombstones.unionValues(other.tombstones)
-
-        val mergedEntries = mutableMapOf<E, Set<UniqueTag>>()
-        for (key in entries.keys + other.entries.keys) {
-            val allTags = entries.getOrElse(key) { emptySet() } +
-                other.entries.getOrElse(key) { emptySet() }
-            val liveTags = allTags - mergedTombstones.getOrElse(key) { emptySet() }
-            if (liveTags.isNotEmpty()) {
-                mergedEntries[key] = liveTags
-            }
-        }
-
-        return OrSet(mergedEntries, mergedTombstones)
+        val liveEntries = entries.unionValues(other.entries)
+            .mapValues { (element, tags) -> tags - mergedTombstones[element].orEmpty() }
+            .filterValues { it.isNotEmpty() }
+        return OrSet(liveEntries, mergedTombstones)
     }
-
-    /**
-     * Fold an [OrSetDelta] into this set. Equivalent to merging with the
-     * partial [OrSet] reconstructed from the delta.
-     */
-    fun applyDelta(delta: OrSetDelta<E>): OrSet<E> =
-        merge(OrSet(entries = delta.addedTags, tombstones = delta.removedTags))
-
-    /**
-     * View this set as an [OrSetDelta] (every live tag as an add, every
-     * tombstoned tag as a remove). Used when shipping a full-state delta as
-     * an incremental one — e.g. for a first-sync catch-up.
-     */
-    fun toDelta(): OrSetDelta<E> =
-        OrSetDelta(addedTags = entries, removedTags = tombstones)
 }

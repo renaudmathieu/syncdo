@@ -1,7 +1,6 @@
 package com.doppio.syncdo
 
 import com.doppio.syncdo.crdt.TodoListCrdt
-import com.doppio.syncdo.crdt.TodoListDelta
 import com.doppio.syncdo.persistence.JsonFileStorage
 import com.doppio.syncdo.plugins.configureSerialization
 import com.doppio.syncdo.plugins.configureSockets
@@ -43,14 +42,7 @@ fun Application.module() {
     logger.info("Loaded {} todo items from disk", initial.itemIds.elements().size)
 
     val syncServer = SyncServer(
-        initialState = { initial },
-        fullStateAsDelta = { state ->
-            TodoListDelta(
-                items = state.items,
-                membership = state.itemIds.toDelta(),
-                clock = state.clock,
-            )
-        },
+        initialState = initial,
         onStateChanged = { state -> storage.save(state) },
     )
 
@@ -58,6 +50,6 @@ fun Application.module() {
         get("/") {
             call.respondText("SyncDO Server is running")
         }
-        syncEndpoint(syncServer, TodoListDelta.serializer(), path = "/sync")
+        syncEndpoint(syncServer, TodoListCrdt.serializer(), path = "/sync")
     }
 }

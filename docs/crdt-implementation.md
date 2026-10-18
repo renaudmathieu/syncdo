@@ -2,13 +2,26 @@
 
 ## Overview
 
-SyncDO uses **Conflict-free Replicated Data Types (CRDTs)** to enable real-time collaborative editing of a shared todo list without a central authority for conflict resolution. Every device holds a full local copy of the state. Concurrent edits on different devices always converge to the same result, with no coordination required.
+SyncDO uses **Conflict-free Replicated Data Types (CRDTs)** to let several devices edit a
+shared todo list, even offline, without a central authority resolving conflicts. Every
+device holds a full local copy of the state. Concurrent edits always converge to the same
+result, with no coordination required.
 
-The implementation lives in the `shared` module under `com.doppio.syncdo.crdt`.
+The code is split in three layers:
+
+| Layer | Module | Contents |
+|---|---|---|
+| Generic CRDTs | `:crdt` (published) | `CrdtState`, `VectorClock`, `LwwRegister`, `OrSet`, `mergeStates` |
+| Generic sync | `:sync` (published) | `ClockedState`, `DeltaBuffer`, `SyncEngine`, `SyncServer`, `syncEndpoint` |
+| Todo sample | `:shared` | `TodoItemCrdt`, `TodoListCrdt`, `OfflineFirstTodoRepository` |
+
+The API reference of `:crdt` and `:sync` is generated with Dokka:
+`./gradlew dokkaGenerate`, then open `build/dokka/html/index.html`.
 
 ## Theoretical Foundation
 
-All CRDT types implement the `CrdtState<T>` interface, which requires a single `merge()` operation:
+All CRDT types implement the `CrdtState<T>` interface, which requires a single
+`merge()` operation:
 
 ```kotlin
 interface CrdtState<T : CrdtState<T>> {
@@ -24,32 +37,47 @@ The `merge` operation must satisfy three properties (forming a **join-semilattic
 | **Associative** | `A.merge(B.merge(C)) == A.merge(B).merge(C)` |
 | **Idempotent** | `A.merge(A) == A` |
 
-These properties guarantee that any two replicas receiving the same set of updates will converge to the same state, regardless of the order in which updates are applied.
+These properties guarantee that any two replicas receiving the same set of updates
+converge to the same state, regardless of the order (or the number of times) in which
+updates are delivered.
 
-## Building Blocks
+### Deltas are states
 
-The complex `TodoListCrdt` is built by **composing simpler CRDTs** - each of which is itself a join-semilattice. Composition of semilattices yields a semilattice, so correctness composes as well.
+SyncDO is a **delta-state CRDT** system: devices exchange small changes (deltas) instead
+of the full state. There is no separate delta type: **a delta is a small state of the
+same type** that holds only the change. It is applied locally with `merge` and the same
+value is sent to the other replicas, which `merge` it too. Thanks to the three properties
+above, a delta can be delivered twice or out of order without harm.
+
+## Building Blocks (`:crdt`)
+
+The `TodoListCrdt` aggregate is built by **composing simpler CRDTs**, each of which is
+itself a join-semilattice. Composition of semilattices yields a semilattice, so
+correctness composes as well.
 
 ### VectorClock
 
-> `shared/.../crdt/VectorClock.kt`
+> `crdt/src/commonMain/kotlin/com/doppio/syncdo/crdt/VectorClock.kt`
 
-A logical clock tracking the number of events seen from each node. Used for causal ordering - determining which updates a node has already seen.
+A logical clock counting the events seen from each node:
 
 ```
 { "node-A": 5, "node-B": 3 }
 ```
 
-- **`increment(nodeId)`** - bumps the counter for a node (called on every local mutation).
+- **`increment(nodeId)`** - bumps the counter of a node (called on every local mutation).
 - **`merge(other)`** - pointwise max across all entries.
-- **`dominates(other)`** - true if this clock is strictly ahead of the other on at least one entry and not behind on any.
-- **`isLessThanOrEqual(other)`** - true if the other clock has seen everything this clock has seen. Used by the server to decide which deltas a client has missed.
+- **`isLessThanOrEqual(other)`** - true if `other` has seen everything this clock has
+  seen. If neither `a <= b` nor `b <= a`, the clocks are concurrent. The server uses it
+  to decide which deltas a client has missed.
 
 ### LwwRegister\<T\>
 
-> `shared/.../crdt/LwwRegister.kt`
+> `crdt/src/commonMain/kotlin/com/doppio/syncdo/crdt/LwwRegister.kt`
 
-A **Last-Writer-Wins Register** - holds a single value, resolved by wall-clock timestamp. When two writes happen at the exact same instant, the higher `nodeId` (lexicographic) wins, ensuring deterministic convergence.
+A **Last-Writer-Wins Register**: holds a single value, resolved by wall-clock timestamp.
+When two writes happen at the exact same instant, the higher `nodeId` (lexicographic)
+wins, ensuring deterministic convergence.
 
 ```kotlin
 data class LwwRegister<T>(
@@ -64,17 +92,21 @@ Merge logic:
 1. Higher timestamp wins.
 2. If timestamps are equal, higher nodeId wins.
 
+Assumption: a node never writes two different values at the same instant.
+
 Used for every mutable field of a todo item (title, note, completed, position).
 
 ### OrSet\<E\> (Observed-Remove Set)
 
-> `shared/.../crdt/OrSet.kt`
+> `crdt/src/commonMain/kotlin/com/doppio/syncdo/crdt/OrSet.kt`
 
-An **add-wins** set. Each `add()` attaches a globally unique tag `(nodeId, counter)`. A `remove()` only tombstones the tags observed at removal time. If another node concurrently adds the same element (with a different tag), that tag survives the remove - hence **add wins**.
+An **add-wins** set. Each add attaches a globally unique tag `(nodeId, counter)`. A
+remove only tombstones the tags observed at removal time. If another node concurrently
+adds the same element (with a new tag), that tag survives the remove: **add wins**.
 
 ```kotlin
 data class OrSet<E>(
-    val entries: Map<E, Set<UniqueTag>>,       // active elements → their tags
+    val entries: Map<E, Set<UniqueTag>>,       // live tags of each element
     val tombstones: Map<E, Set<UniqueTag>>     // removed tags
 )
 ```
@@ -83,17 +115,30 @@ Merge logic:
 
 1. Union all tombstones from both replicas.
 2. Union all entry tags, then subtract tombstoned tags.
-3. Elements with at least one surviving tag remain in the set.
+3. Elements with at least one surviving tag remain in the set (invariant: `entries`
+   only holds live tags).
+
+Deltas: `addDelta(element, tag)` and `removeDelta(element)` return a small `OrSet`
+holding only the change; `add` and `remove` are `merge(addDelta(...))` and
+`merge(removeDelta(...))`.
 
 Used to track **which todo items exist** in the list.
 
-## Composite CRDTs
+### mergeStates
+
+> `crdt/src/commonMain/kotlin/com/doppio/syncdo/crdt/MapMerge.kt`
+
+`Map<K, V>.mergeStates(other)` merges two maps of CRDTs key by key: a map of CRDTs is a
+CRDT. Used for the map of todo items.
+
+## Composite CRDTs (`:shared`)
 
 ### TodoItemCrdt
 
-> `shared/.../crdt/TodoItemCrdt.kt`
+> `shared/src/commonMain/kotlin/com/doppio/syncdo/crdt/TodoItemCrdt.kt`
 
-Represents a single todo item. Each mutable field is an independent `LwwRegister`, so concurrent edits to different fields never conflict:
+Represents a single todo item. Each mutable field is an independent `LwwRegister`, so
+concurrent edits to different fields never conflict:
 
 | Field | Type | Description |
 |---|---|---|
@@ -108,116 +153,105 @@ Merge: field-by-field LWW merge. `createdAt` uses `minOf` (earliest wins).
 
 ### TodoListCrdt
 
-> `shared/.../crdt/TodoListCrdt.kt`
+> `shared/src/commonMain/kotlin/com/doppio/syncdo/crdt/TodoListCrdt.kt`
 
-The **top-level aggregate** - the single source of truth for the entire todo list:
+The **top-level aggregate**, the single source of truth for the entire todo list. It is
+also its own delta type.
 
 ```kotlin
 data class TodoListCrdt(
-    val itemIds: OrSet<String>,               // set membership (which items exist)
+    val itemIds: OrSet<String>,               // which items exist
     val items: Map<String, TodoItemCrdt>,     // item data by ID
-    val clock: VectorClock                     // causal clock
-)
+    override val clock: VectorClock           // causal clock, used by the sync
+) : ClockedState<TodoListCrdt>
 ```
 
-Merge:
-
-1. Merge the `OrSet` (determines which items are alive after considering adds and removes).
-2. For each surviving item ID, merge the `TodoItemCrdt` data from both replicas.
-3. Merge the vector clocks.
+Merge is field by field: `itemIds.merge`, `items.mergeStates`, `clock.merge`. The data of
+removed items is kept (like OR-Set tombstones); the UI only shows the items whose id is
+in `itemIds.elements()`.
 
 This means:
-- If device A adds an item while device B deletes it concurrently → the item **survives** (add-wins).
-- If device A edits the title while device B edits the note → **both edits** are preserved (independent LWW registers).
-- If device A and B both edit the title → the **later timestamp** wins (LWW).
+- If device A adds an item while device B deletes it concurrently, the item **survives**
+  (add-wins).
+- If device A edits the title while device B edits the note, **both edits** are
+  preserved (independent LWW registers).
+- If devices A and B both edit the title, the **later timestamp** wins (LWW).
 
-## Delta Sync
+## Sync (`:sync`)
 
-Instead of shipping the full CRDT state on every change, SyncDO uses **delta-based synchronization**.
+### ClockedState
 
-### TodoListDelta
-
-> `shared/.../crdt/TodoListDelta.kt`
-
-A partial diff containing only what changed:
-
-```kotlin
-data class TodoListDelta(
-    val items: Map<String, TodoItemCrdt>,  // added or updated items
-    val membership: OrSetDelta<String>,    // add/remove tags for item IDs
-    val clock: VectorClock,
-)
-```
-
-`OrSetDelta<E>` lives in `:crdt` - it's the generic patch shape produced by
-`OrSet.addWithDelta` / `removeWithDelta`, composable via `merge`. `TodoListDelta`
-merges field-by-field using the `:crdt` operators: `Map.mergeStates` for the
-items map, `OrSetDelta.merge` for membership, `VectorClock.merge` for the clock.
-
-Deltas are themselves mergeable - two deltas can be combined into one, which is important for batching.
+What the sync layer needs from the application state: a `CrdtState` that also carries a
+`VectorClock`. The same type travels as full state and as delta.
 
 ### DeltaBuffer
 
-> `shared/.../crdt/DeltaBuffer.kt`
+> `sync/src/commonMain/kotlin/com/doppio/syncdo/sync/DeltaBuffer.kt`
 
-Accumulates local mutations into a pending delta until the sync engine successfully pushes it to the server. Supports three operations:
+The outbox of local changes. It holds at most one pending delta:
 
-- `recordAdd(id, item, tag, clock)` - new item added
-- `recordRemove(id, tombstonedTags, clock)` - item removed
-- `recordUpdate(id, item, clock)` - item field changed
-- `flush()` - returns the accumulated delta and resets the buffer
+- `record(delta)` - merges `delta` into the pending one;
+- `flush()` - returns the pending delta and empties the buffer.
 
-## Sync Protocol
+When a push fails, the delta is simply recorded again: `merge` is commutative, so the
+order does not matter.
 
-> `shared/.../sync/`
+### Protocol
 
-Communication happens over WebSocket using JSON-serialized `SyncMessage` variants:
+Communication happens over one WebSocket using JSON-serialized `SyncMessage` variants:
 
 | Message | Direction | Purpose |
 |---|---|---|
-| `PullRequest(clock, nodeId)` | Client → Server | "Send me everything I've missed since this clock" |
-| `PullResponse(delta)` | Server → Client | Delta of changes the client hasn't seen |
-| `PushDelta(delta, nodeId)` | Client → Server | Local changes to merge into server state |
-| `FullSync(state)` | Server → Client | Complete state (fallback when client is too far behind) |
+| `PullRequest(clock, nodeId)` | Client → Server | "Here is what I have seen, send me what I miss" |
+| `PushDelta(delta, nodeId)` | Client → Server | A local change to merge into server state |
+| `PullResponse(delta)` | Server → Client | What the client is missing, or a peer's change |
 
-### Connection Lifecycle (SyncEngine)
+### Connection lifecycle (SyncEngine)
 
-1. Client connects to `ws://{host}:8080/sync`.
-2. Sends a `PullRequest` with its local vector clock.
-3. Pushes any buffered local deltas via `PushDelta`.
-4. Enters a receive loop, applying incoming `PullResponse` deltas.
-5. On disconnect, uses **exponential backoff** (1s → 2s → 4s → ... → 30s max) to reconnect.
+1. The client connects to `ws://{host}:8080/sync`.
+2. It sends a `PullRequest` with its local vector clock.
+3. It pushes its buffered delta via `PushDelta`.
+4. It enters a receive loop, merging every incoming `PullResponse`.
+5. On disconnect it reconnects with **exponential backoff** (1s, 2s, 4s, ... 30s max).
 
-### Server Handling (SyncRoutes)
+### Server handling (SyncServer + syncEndpoint)
 
-On receiving a `PushDelta`:
+On a `PushDelta`:
 
-1. Merge the delta into the authoritative `ServerStateStore`.
-2. Broadcast the delta to all other connected WebSocket clients as a `PullResponse`.
-3. Check if the pushing client missed any changes and send those back.
+1. Merge the delta into the authoritative state and append it to the `DeltaLog`.
+2. Broadcast the delta to every other connected client as a `PullResponse`.
+3. If the pushing client missed something, send it back.
 
-On receiving a `PullRequest`:
+On a `PullRequest`, the server answers with what the client is missing:
 
-1. Look up deltas the client hasn't seen using the `DeltaLog` (rolling buffer of last 100 deltas).
-2. If the client is too far behind (or has an empty clock), fall back to sending the full state as a delta.
+- nothing if the client is up to date;
+- the missed deltas merged into one, when the `DeltaLog` (last 100 deltas) still covers
+  the gap;
+- the full state otherwise (a full state is a valid delta). The log tracks the clock of
+  the evicted deltas and of the initial state to detect this case.
 
 ## Node Identity
 
-> `shared/.../sync/NodeIdProvider.kt`
+> `shared/src/commonMain/kotlin/com/doppio/syncdo/sync/NodeIdProvider.kt`
 
-Each device gets a persistent UUID stored in `node-id.txt`. This ID is used as the key in vector clocks and as the tie-breaker in LWW registers. It's generated once on first launch and reused across sessions.
+Each device gets a persistent UUID stored in `node-id.txt`. This ID is used as the key in
+vector clocks, in OR-Set tags, and as the tie-breaker in LWW registers. It is generated
+once on first launch and reused across sessions.
 
 ## Offline-First Architecture
 
-> `shared/.../repository/OfflineFirstTodoRepository.kt`
+> `shared/src/commonMain/kotlin/com/doppio/syncdo/repository/OfflineFirstTodoRepository.kt`
 
-The repository is the state machine that ties everything together:
+The repository ties everything together. Each mutation:
 
-1. **Local-first**: Every mutation immediately updates the local CRDT state and persists to disk.
-2. **Buffer changes**: Mutations are recorded in the `DeltaBuffer` for later sync.
-3. **Push when possible**: After each mutation, the repository attempts to push the buffered delta via `SyncEngine`.
-4. **Merge remote**: When deltas arrive from the server, the repository merges them into local state using `TodoListCrdt.merge()`.
-5. **Thread-safe**: All state access is guarded by a `Mutex`.
+1. increments the local vector clock (its new entry also serves as the OR-Set tag
+   counter);
+2. builds a delta: a small `TodoListCrdt` holding only the change;
+3. records it in the `DeltaBuffer` and merges it into the local state;
+4. persists the state to disk, then asks the `SyncEngine` to push.
+
+When deltas arrive from the server, the repository merges them with
+`TodoListCrdt.merge()`. All state access is guarded by a `Mutex`.
 
 ```
 User Action
@@ -227,14 +261,14 @@ TodoViewModel
     │
     ▼
 OfflineFirstTodoRepository
-    ├── mutate local CRDT state
+    ├── build delta (small TodoListCrdt)
+    ├── record delta + merge locally
     ├── persist to JSON file
-    ├── buffer delta
     └── push via SyncEngine ──► WebSocket ──► Server
                                                 │
                                     ┌───────────┘
                                     ▼
-                              ServerStateStore
+                         SyncServer.mergeDelta
                                     │
                               broadcast to
                               other clients
@@ -253,9 +287,9 @@ OfflineFirstTodoRepository
 
 | Scenario | Resolution |
 |---|---|
-| Two devices add the same item concurrently | Both items coexist (different UUIDs) |
+| Two devices add an item concurrently | Both items coexist (different UUIDs) |
 | One device adds, another removes the same item | Item survives (add-wins via OrSet) |
 | Two devices edit different fields of the same item | Both edits preserved (independent LWW registers) |
 | Two devices edit the same field of the same item | Later timestamp wins (LWW), nodeId breaks ties |
 | Device is offline, makes changes, reconnects | Changes are buffered and pushed on reconnect, merged normally |
-| Client reconnects after being offline for a long time | Server sends full state as a delta (DeltaLog overflow fallback) |
+| Client reconnects after a long time offline | Server sends the full state (DeltaLog no longer covers the gap) |

@@ -119,10 +119,13 @@ composants l'est. C'est ce que le commentaire dans le code exprime :
 
 Un bénéfice pratique découlant de la structure CRDT est le **delta sync**. Parce que
 `merge()` est idempotent et commutatif, le `DeltaBuffer` peut accumuler uniquement
-les *changements locaux* depuis le dernier sync et les envoyer :
+les *changements locaux* depuis le dernier sync et les envoyer. Un delta n'est pas un
+type à part : c'est un petit `TodoListCrdt` qui ne contient que le changement.
 
 ```
-PushDelta { addedItems, updatedItems, addedTags, removedTags, clock }
+PushDelta { delta = TodoListCrdt { itemIds: les tags ajoutés ou supprimés,
+                                   items: les items créés ou modifiés,
+                                   clock } }
 ```
 
 Le serveur merge ce delta dans son état complet. Chaque client fait de même à la

@@ -3,6 +3,7 @@ package com.doppio.syncdo.persistence
 import com.doppio.syncdo.crdt.OrSet
 import com.doppio.syncdo.crdt.TodoItemCrdt
 import com.doppio.syncdo.crdt.TodoListCrdt
+import com.doppio.syncdo.crdt.UniqueTag
 import com.doppio.syncdo.crdt.VectorClock
 import java.io.File
 import java.nio.file.Files
@@ -46,7 +47,7 @@ class JsonFileStorageTest {
             timestamp = Instant.fromEpochMilliseconds(1_000),
         )
         return TodoListCrdt(
-            itemIds = OrSet<String>().add("1", "node-A", 1),
+            itemIds = OrSet<String>().add("1", UniqueTag("node-A", 1)),
             items = mapOf("1" to item),
             clock = VectorClock().increment("node-A"),
         )

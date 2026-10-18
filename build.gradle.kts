@@ -11,6 +11,16 @@ plugins {
     alias(libs.plugins.kotlinxSerialization) apply false
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.vanniktechMavenPublish) apply false
-    alias(libs.plugins.dokka) apply false
+    alias(libs.plugins.dokka)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator) apply false
+}
+// Aggregated API reference of the published libraries: ./gradlew dokkaGenerate
+// Output: build/dokka/html/index.html
+dokka {
+    moduleName.set("SyncDO")
+}
+
+dependencies {
+    dokka(project(":crdt"))
+    dokka(project(":sync"))
 }
