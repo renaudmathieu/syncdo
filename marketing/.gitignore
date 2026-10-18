@@ -1,0 +1,20 @@
+# Heavy or regenerable files of the marketing/ workspace (Doppio marketing skills).
+# Markdown, JSON configs, compositions, looks, fonts and final screenshots stay versioned.
+
+# app-marketing-screenshots
+screenshots/shots/raw/
+screenshots/framed/
+screenshots/review_*.png
+
+# app-promo-video
+videos/*/footage/
+videos/*/stills-*/
+videos/*/review/
+videos/*/ref/
+videos/*/energy.png
+*.mp4
+*.mov
+*.webm
+
+# System
+.DS_Store
