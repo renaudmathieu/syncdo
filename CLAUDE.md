@@ -32,6 +32,7 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 ./gradlew :server:run                          # Port 8080
 ./gradlew :crdt:apiCheck :sync:apiCheck        # Binary-compat guard against committed api/ baselines
 ./gradlew :crdt:apiDump :sync:apiDump          # Regenerate baselines after intentional API changes
+./gradlew dokkaGenerate                        # API docs (Dokka 2) → build/dokka/html/index.html
 ./gradlew :crdt:publishToMavenLocal :sync:publishToMavenLocal
 ```
 
@@ -89,6 +90,8 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
   part of the library surface.
 - Publishing metadata lives in `gradle.properties` (`GROUP`, `VERSION_NAME`)
   and each library's `build.gradle.kts` (`mavenPublishing { pom { … } }`).
+- Public `:crdt` / `:sync` declarations need KDoc: Dokka runs with
+  `reportUndocumented`, landing pages are `crdt/Module.md` and `sync/Module.md`.
 - Any change to `:crdt` or `:sync` public API must be followed by
   `./gradlew :<module>:apiDump` and a committed `api/` diff - `apiCheck` runs
   in `build` and will fail otherwise.

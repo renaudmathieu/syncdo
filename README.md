@@ -4,6 +4,9 @@ Kotlin Multiplatform libraries for CRDT-based sync, plus a collaborative todo ap
 
 Licensed under [Apache 2.0](LICENSE).
 
+**Documentation**: API reference with `./gradlew dokkaGenerate`, then open
+`build/dokka/html/index.html`. Design notes in [`docs/`](docs/crdt-implementation.md).
+
 ## Modules
 
 ### Published libraries
@@ -93,7 +96,9 @@ skip the prompt.
 2. **Concurrent different fields** - Edit title on A and note on B simultaneously; both survive.
 3. **Concurrent same field** - Both devices converge to the later-timestamp write (LWW, node-id tiebreak).
 4. **Offline buffering** - Disable sync on A, mutate, re-enable; pending deltas push cleanly.
-5. **Add-wins** - Concurrent edit + delete → edit wins (OR-Set semantics).
+5. **Edit vs delete** - Edit a task on A while B deletes it: the task ends up deleted on both.
+   The edit only changes the item's data, not list membership. The OR-Set's add-wins rule
+   applies when the same element is re-added concurrently, which the sample's UUID ids never do.
 
 ## Tests & build
 
@@ -102,6 +107,7 @@ skip the prompt.
 ./gradlew :crdt:allTests :sync:allTests         # Library tests (incl. iOS sim)
 ./gradlew :shared:jvmTest :server:test          # Sample tests
 ./gradlew :crdt:apiCheck :sync:apiCheck         # Binary-compat guard
+./gradlew dokkaGenerate                         # API docs → build/dokka/html/index.html
 ./gradlew :crdt:publishToMavenLocal \
           :sync:publishToMavenLocal             # Local publish
 ```

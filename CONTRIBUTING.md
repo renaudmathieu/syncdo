@@ -23,6 +23,7 @@ See [CLAUDE.md](CLAUDE.md) for a deeper map of the repo.
 ./gradlew :crdt:allTests :sync:allTests        # libraries (incl. iOS sim)
 ./gradlew :crdt:apiCheck :sync:apiCheck        # binary-compat gate
 ./gradlew :crdt:apiDump :sync:apiDump          # regenerate baselines on intentional API change
+./gradlew dokkaGenerate                        # API docs → build/dokka/html/index.html
 ./gradlew :crdt:publishToMavenLocal :sync:publishToMavenLocal
 ```
 
@@ -37,7 +38,9 @@ To run the demo end-to-end locally:
 
 - Kotlin official style (`kotlin.code.style=official`).
 - Public library APIs need KDoc. Method-level docs should call out exception
-  behaviour and any subtle ordering constraints.
+  behaviour and any subtle ordering constraints. Dokka runs with
+  `reportUndocumented`: `./gradlew dokkaGenerate` must print no `Undocumented:`
+  warning. Module landing pages live in `crdt/Module.md` and `sync/Module.md`.
 - Prefer changes to `.kts` build files via `libs.versions.toml`; don't pin
   versions inline.
 - Logging in libraries goes through `SyncLogger` (see `:sync`). Don't

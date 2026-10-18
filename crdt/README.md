@@ -6,6 +6,18 @@ offline-first collaborative applications.
 
 Targets: Android, iOS (arm64 + simulator arm64), JVM (desktop + server).
 
+## Documentation
+
+- **API reference**: `./gradlew :crdt:dokkaGenerate`, then open
+  `crdt/build/dokka/html/index.html` (or `./gradlew dokkaGenerate` for both libraries,
+  in `build/dokka/html`). It is also shipped in the published `-javadoc.jar`.
+  Start with the module page, then `CrdtState`.
+- **Concepts and design**: [`docs/crdt-implementation.md`](../docs/crdt-implementation.md).
+
+The whole library is five small files, readable top to bottom in this order:
+`CrdtState.kt` (the contract), `VectorClock.kt`, `LwwRegister.kt`, `OrSet.kt`,
+`MapMerge.kt`.
+
 ## Installation
 
 ```kotlin

@@ -9,6 +9,8 @@ Targets:
 - `commonMain` - protocol + client engine (Android, iOS arm64/simulatorArm64, JVM)
 - `jvmMain` - generic Ktor `SyncServer` + `Route.syncEndpoint(...)` helpers
 
+API reference: `./gradlew :sync:dokkaGenerate`, then open `sync/build/dokka/html/index.html`.
+
 ## Installation
 
 ```kotlin
