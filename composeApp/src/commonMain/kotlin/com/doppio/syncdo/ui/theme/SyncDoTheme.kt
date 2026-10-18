@@ -5,77 +5,74 @@ import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
-// Semantic status indicators — no direct M3 color role equivalent
+// Semantic status indicators, no direct M3 color role equivalent
 object SyncDoStatusColors {
-    val Synced  = Color(0xFF22C55E)
-    val Syncing = Color(0xFFF59E0B)
-    val Offline = Color(0xFF7070A0)
+    val Synced = Mo.StatusPositive
+    val Syncing = Mo.StatusWarning
+    val Offline = Mo.TextTertiary
+    val Error = Mo.ErrorFg
 }
 
-// Custom dark color scheme built around primary #3738CC
+// Every M3 role points at a Mouture token
 private val SyncDoDarkColorScheme = darkColorScheme(
-    // Primary — seed color used as-is
-    primary                 = Color(0xFF3738CC),
-    onPrimary               = Color(0xFFFFFFFF),
-    primaryContainer        = Color(0xFF1E1FA3),
-    onPrimaryContainer      = Color(0xFFC5C6FF),
+    primary = Mo.Accent,
+    onPrimary = Color.White,
+    primaryContainer = Mo.AccentDim,
+    onPrimaryContainer = Mo.TextPrimary,
 
-    // Secondary — muted periwinkle, same hue family
-    secondary               = Color(0xFF8889E0),
-    onSecondary             = Color(0xFF12126A),
-    secondaryContainer      = Color(0xFF2526A8),
-    onSecondaryContainer    = Color(0xFFD8D8FF),
+    secondary = Mo.AccentBlue,
+    onSecondary = Color.White,
+    secondaryContainer = Mo.AccentBlueDim,
+    onSecondaryContainer = Mo.TextPrimary,
 
-    // Tertiary — rose/pink complement
-    tertiary                = Color(0xFFCB96CB),
-    onTertiary              = Color(0xFF45084A),
-    tertiaryContainer       = Color(0xFF5E2062),
-    onTertiaryContainer     = Color(0xFFFBCEFF),
+    tertiary = Mo.AccentPink,
+    onTertiary = Color.White,
+    tertiaryContainer = Mo.AccentPinkDim,
+    onTertiaryContainer = Mo.TextPrimary,
 
-    // Backgrounds
-    background              = Color(0xFF0D0D1C),
-    onBackground            = Color(0xFFE4E4F6),
-    surface                 = Color(0xFF0D0D1C),
-    onSurface               = Color(0xFFE4E4F6),
+    background = Mo.BgPage,
+    onBackground = Mo.TextPrimary,
+    surface = Mo.BgPage,
+    onSurface = Mo.TextPrimary,
 
-    // Surface containers (graduated dark blues for layering)
-    surfaceVariant          = Color(0xFF2E2E58),
-    onSurfaceVariant        = Color(0xFFB0B0D0),
-    surfaceContainerLowest  = Color(0xFF08080F),
-    surfaceContainerLow     = Color(0xFF13132A),
-    surfaceContainer        = Color(0xFF191935),
-    surfaceContainerHigh    = Color(0xFF20203F),
-    surfaceContainerHighest = Color(0xFF2A2A50),
+    surfaceVariant = Mo.BgControl,
+    onSurfaceVariant = Mo.TextSecondary,
+    surfaceContainerLowest = Mo.BgMuted,
+    surfaceContainerLow = Mo.BgCard,
+    surfaceContainer = Mo.BgControl,
+    surfaceContainerHigh = Mo.BorderPrimary,
+    surfaceContainerHighest = Mo.BorderPrimary,
 
-    // Outline
-    outline                 = Color(0xFF7070A0),
-    outlineVariant          = Color(0xFF3C3C6C),
+    outline = Mo.TextTertiary,
+    outlineVariant = Mo.BorderPrimary,
 
-    // Error
-    error                   = Color(0xFFFF8A8A),
-    onError                 = Color(0xFF680000),
-    errorContainer          = Color(0xFF920000),
-    onErrorContainer        = Color(0xFFFFDBDB),
+    error = Mo.ErrorFg,
+    onError = Mo.ErrorDim,
+    errorContainer = Mo.ErrorDim,
+    onErrorContainer = Mo.ErrorOnDim,
 
-    // Inverse
-    inverseSurface          = Color(0xFFE4E4F6),
-    inverseOnSurface        = Color(0xFF16163A),
-    inversePrimary          = Color(0xFF5556EE),
+    inverseSurface = Mo.TextPrimary,
+    inverseOnSurface = Mo.BgCard,
+    inversePrimary = Mo.BrandGradientStart,
 
-    scrim                   = Color(0xFF000000),
-    surfaceTint             = Color(0xFF3738CC),
+    scrim = Mo.ShadowInk,
+    surfaceTint = Mo.Accent,
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SyncDoTheme(content: @Composable () -> Unit) {
     val typography = rememberSyncDoTypography()
-    MaterialExpressiveTheme(
-        colorScheme = SyncDoDarkColorScheme,
-        motionScheme = MotionScheme.expressive(),
-        typography = typography,
-        content = content
-    )
+    val mono = rememberMonoStyles()
+    CompositionLocalProvider(LocalMonoStyles provides mono) {
+        MaterialExpressiveTheme(
+            colorScheme = SyncDoDarkColorScheme,
+            motionScheme = MotionScheme.expressive(),
+            typography = typography,
+            content = content
+        )
+    }
 }
