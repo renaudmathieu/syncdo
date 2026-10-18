@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.vanniktechMavenPublish)
 }
 
@@ -47,14 +48,27 @@ android {
     }
 }
 
+dokka {
+    moduleName.set("syncdo-crdt")
+    dokkaSourceSets.configureEach {
+        includes.from("Module.md")
+        reportUndocumented.set(true)
+        sourceLink {
+            localDirectory.set(file("src"))
+            remoteUrl("https://github.com/renaudmathieu/syncdo/tree/main/crdt/src")
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO CRDT")
         description.set(
-            "Generic CRDT primitives for Kotlin Multiplatform: VectorClock, LwwRegister, " +
-                "Observed-Remove Set, and composable Delta/DeltaState abstractions."
+            "Generic CRDT primitives for Kotlin Multiplatform: CrdtState, VectorClock, " +
+                "LwwRegister and Observed-Remove Set, composable into your own CRDTs."
         )
         inceptionYear.set("2026")
         url.set("https://github.com/doppio/syncdo")

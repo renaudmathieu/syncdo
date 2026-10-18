@@ -1,10 +1,18 @@
 package com.doppio.syncdo.crdt
 
 /**
- * Merge two maps whose values are themselves [CrdtState]s: keys present on one side
- * are kept as is, colliding keys are merged with their own [CrdtState.merge].
+ * Merge two maps whose values are CRDTs: a key present on one side only is kept as is,
+ * and the values of a key present on both sides are merged with their own
+ * [CrdtState.merge].
  *
- * This is the "map of CRDTs is a CRDT" operator, the backbone of composite aggregates.
+ * A map of CRDTs merged this way is itself a CRDT. This is the building block of
+ * composite aggregates, such as "a map from item id to item":
+ *
+ * ```kotlin
+ * data class TodoList(val items: Map<String, TodoItem>) : CrdtState<TodoList> {
+ *     override fun merge(other: TodoList) = TodoList(items.mergeStates(other.items))
+ * }
+ * ```
  */
 fun <K, V : CrdtState<V>> Map<K, V>.mergeStates(other: Map<K, V>): Map<K, V> =
     mergeValues(other) { a, b -> a.merge(b) }

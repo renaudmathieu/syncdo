@@ -11,5 +11,9 @@ import com.doppio.syncdo.crdt.VectorClock
  * and [clock] tells which deltas a peer has not seen yet.
  */
 interface ClockedState<S : ClockedState<S>> : CrdtState<S> {
+    /**
+     * The events this state contains: the clock of the replica that produced it. For a delta,
+     * the clock of its author right after the change.
+     */
     val clock: VectorClock
 }

@@ -61,12 +61,18 @@ class SyncEngine<D : ClockedState<D>>(
         install(WebSockets)
     }
 
+    /** Current connection and sync state, for the UI. Starts as [SyncStatus.Offline]. */
     val syncStatus: StateFlow<SyncStatus>
         field = MutableStateFlow(SyncStatus.Offline)
 
     private var session: WebSocketSession? = null
     private var connectJob: Job? = null
 
+    /**
+     * Connect to the server in [scope] and keep the connection alive, reconnecting with
+     * exponential backoff (1 s up to 30 s). On each connection, pulls what was missed and
+     * pushes pending changes.
+     */
     fun start() {
         connectJob = scope.launch {
             var backoff = 1_000L
@@ -113,6 +119,10 @@ class SyncEngine<D : ClockedState<D>>(
         syncStatus.update { SyncStatus.Synced }
     }
 
+    /**
+     * Push the pending local changes now, if connected. Call it after each local mutation.
+     * When offline, the changes stay pending and are pushed on the next connection.
+     */
     suspend fun pushPendingDelta() {
         val ws = session ?: run {
             syncStatus.update { SyncStatus.PendingChanges }
@@ -130,6 +140,7 @@ class SyncEngine<D : ClockedState<D>>(
         }
     }
 
+    /** Disconnect and wait until the connection loop has stopped. */
     suspend fun stop() {
         connectJob?.cancelAndJoin()
         connectJob = null

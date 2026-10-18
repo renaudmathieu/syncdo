@@ -16,6 +16,7 @@ class DeltaBuffer<D : CrdtState<D>> {
     private val mutex = Mutex()
     private var pending: D? = null
 
+    /** Add [delta] to the pending changes (merged with what is already pending). */
     suspend fun record(delta: D): Unit = mutex.withLock {
         pending = pending?.merge(delta) ?: delta
     }

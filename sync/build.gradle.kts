@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.kotlinxBinaryCompatibilityValidator)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.vanniktechMavenPublish)
 }
 
@@ -72,14 +73,27 @@ android {
     }
 }
 
+dokka {
+    moduleName.set("syncdo-sync")
+    dokkaSourceSets.configureEach {
+        includes.from("Module.md")
+        reportUndocumented.set(true)
+        sourceLink {
+            localDirectory.set(file("src"))
+            remoteUrl("https://github.com/renaudmathieu/syncdo/tree/main/sync/src")
+            remoteLineSuffix.set("#L")
+        }
+    }
+}
+
 mavenPublishing {
-    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
 
     pom {
         name.set("SyncDO Sync")
         description.set(
             "Generic WebSocket sync engine + server routing for Kotlin Multiplatform " +
-                "CRDTs. Parameterized on any Delta<D> / DeltaState<S, D>."
+                "CRDTs. Parameterized on any ClockedState<S>."
         )
         inceptionYear.set("2026")
         url.set("https://github.com/doppio/syncdo")
