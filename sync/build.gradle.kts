@@ -96,7 +96,7 @@ mavenPublishing {
                 "CRDTs. Parameterized on any ClockedState<S>."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/doppio/syncdo")
+        url.set("https://github.com/renaudmathieu/syncdo")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -110,9 +110,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/doppio/syncdo")
-            connection.set("scm:git:git://github.com/doppio/syncdo.git")
-            developerConnection.set("scm:git:ssh://git@github.com/doppio/syncdo.git")
+            url.set("https://github.com/renaudmathieu/syncdo")
+            connection.set("scm:git:git://github.com/renaudmathieu/syncdo.git")
+            developerConnection.set("scm:git:ssh://git@github.com/renaudmathieu/syncdo.git")
         }
     }
 }
