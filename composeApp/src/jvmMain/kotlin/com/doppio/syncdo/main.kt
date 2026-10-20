@@ -18,7 +18,7 @@ fun main() {
                 runBlocking { AppModule.shutdown() }
                 exitApplication()
             },
-            title = "SyncDO — $instanceName",
+            title = "SyncDO - $instanceName",
             state = WindowState(
                 width = 412.dp,
                 height = 942.dp,

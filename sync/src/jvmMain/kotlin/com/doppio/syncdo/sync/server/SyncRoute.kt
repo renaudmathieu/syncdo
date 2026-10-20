@@ -27,7 +27,7 @@ import kotlinx.serialization.json.Json
  * }
  * ```
  */
-fun <S : ClockedState<S>> Route.syncEndpoint(
+public fun <S : ClockedState<S>> Route.syncEndpoint(
     server: SyncServer<S>,
     deltaSerializer: KSerializer<S>,
     path: String = "/sync",

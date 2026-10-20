@@ -7,10 +7,6 @@ plugins {
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xexplicit-backing-fields")
-    }
-
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -21,8 +17,6 @@ kotlin {
     iosSimulatorArm64()
 
     jvm()
-
-    applyDefaultHierarchyTemplate()
 
     sourceSets {
         commonMain.dependencies {

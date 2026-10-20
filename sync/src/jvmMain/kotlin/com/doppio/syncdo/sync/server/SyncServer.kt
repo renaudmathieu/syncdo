@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
  *   in-memory writes, or `launch`-and-return). Use for persistence, metrics, or audit
  *   logs. Exceptions propagate to the caller of [mergeDelta].
  */
-class SyncServer<S : ClockedState<S>>(
+public class SyncServer<S : ClockedState<S>>(
     initialState: S,
     maxLogSize: Int = 100,
     private val onStateChanged: suspend (S) -> Unit = {},
@@ -30,7 +30,7 @@ class SyncServer<S : ClockedState<S>>(
     private val deltaLog = DeltaLog<S>(initialState.clock, maxLogSize)
 
     /** Merge a client-pushed delta into the canonical state and record it in the log. */
-    suspend fun mergeDelta(delta: S): Unit = mutex.withLock {
+    public suspend fun mergeDelta(delta: S): Unit = mutex.withLock {
         state = state.merge(delta)
         deltaLog.append(delta)
         onStateChanged(state)
@@ -41,7 +41,7 @@ class SyncServer<S : ClockedState<S>>(
      * covers the gap, the full state otherwise (a full state is a valid delta). Null if
      * the client is up to date.
      */
-    suspend fun getDeltaSince(clientClock: VectorClock): S? = mutex.withLock {
+    public suspend fun getDeltaSince(clientClock: VectorClock): S? = mutex.withLock {
         when {
             state.clock.isLessThanOrEqual(clientClock) -> null
             deltaLog.covers(clientClock) -> deltaLog.missedSince(clientClock)
@@ -50,5 +50,5 @@ class SyncServer<S : ClockedState<S>>(
     }
 
     /** Current authoritative state. Read-only snapshot. */
-    suspend fun currentState(): S = mutex.withLock { state }
+    public suspend fun currentState(): S = mutex.withLock { state }
 }

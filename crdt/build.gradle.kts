@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.SonatypeHost
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -12,6 +13,9 @@ plugins {
 }
 
 kotlin {
+    // Published library: every public declaration must say so, and must have an explicit type.
+    explicitApi()
+
     androidTarget {
         publishLibraryVariants("release")
         compilerOptions {
@@ -22,9 +26,13 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    jvm()
-
-    applyDefaultHierarchyTemplate()
+    jvm {
+        // Pin the bytecode level of the published -jvm artifact instead of inheriting it
+        // from whichever JDK runs Gradle. Matches the Android target.
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -63,6 +71,13 @@ dokka {
 
 mavenPublishing {
     configure(KotlinMultiplatform(javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml")))
+
+    // Maven Central through the Central Portal. Credentials and the signing key come from
+    // ORG_GRADLE_PROJECT_mavenCentralUsername / mavenCentralPassword / signingInMemoryKey /
+    // signingInMemoryKeyPassword (see .github/workflows/publish.yml). Signing is skipped for
+    // SNAPSHOT versions and for publishToMavenLocal when no key is configured.
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+    signAllPublications()
 
     pom {
         name.set("SyncDO CRDT")

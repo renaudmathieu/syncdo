@@ -83,7 +83,7 @@ sync engine and Ktor server endpoint: add a `clock` and implement its `ClockedSt
 
 - All types are `@Serializable` (kotlinx.serialization). JSON is the default wire
   format; binary formats work too.
-- `LwwRegister` uses `kotlin.time.Instant` (stdlib, Kotlin 2.1+) - no extra
+- `LwwRegister` uses `kotlin.time.Instant` (stdlib, stable since Kotlin 2.2) - no extra
   datetime dependency required.
 - `OrSet` is the most subtle type. Each add attaches a fresh unique tag; a remove
   tombstones only the tags observed at remove time. This is what gives concurrent

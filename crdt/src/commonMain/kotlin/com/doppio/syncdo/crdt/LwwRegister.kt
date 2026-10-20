@@ -33,10 +33,10 @@ import kotlinx.serialization.Serializable
  * @property nodeId the node that wrote [value], used as a tie-breaker.
  */
 @Serializable
-data class LwwRegister<T>(
-    val value: T,
-    val timestamp: Instant,
-    val nodeId: NodeId
+public data class LwwRegister<T>(
+    public val value: T,
+    public val timestamp: Instant,
+    public val nodeId: NodeId
 ) : CrdtState<LwwRegister<T>> {
 
     /**

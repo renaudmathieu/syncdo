@@ -1,7 +1,7 @@
 package com.doppio.syncdo.sync
 
 /** Severity of a [SyncLogger] event. */
-enum class SyncLogLevel {
+public enum class SyncLogLevel {
     /** Verbose details, useful while developing. */
     Debug,
 
@@ -21,14 +21,14 @@ enum class SyncLogLevel {
  * Logcat on Android) to surface connection errors, push failures, and merge
  * activity without dragging an SLF4J dependency into common code.
  */
-fun interface SyncLogger {
+public fun interface SyncLogger {
     /** Record one event; [error] is the exception that caused it, if any. */
-    fun log(level: SyncLogLevel, message: String, error: Throwable?)
+    public fun log(level: SyncLogLevel, message: String, error: Throwable?)
 
     /** Ready-made loggers. */
-    companion object {
+    public companion object {
         /** Discards every event. */
-        val Noop: SyncLogger = SyncLogger { _, _, _ -> }
+        public val Noop: SyncLogger = SyncLogger { _, _, _ -> }
     }
 }
 

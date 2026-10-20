@@ -14,7 +14,7 @@ package com.doppio.syncdo.crdt
  * }
  * ```
  */
-fun <K, V : CrdtState<V>> Map<K, V>.mergeStates(other: Map<K, V>): Map<K, V> =
+public fun <K, V : CrdtState<V>> Map<K, V>.mergeStates(other: Map<K, V>): Map<K, V> =
     mergeValues(other) { a, b -> a.merge(b) }
 
 /** Merge two maps of sets by taking the union at each key. */
