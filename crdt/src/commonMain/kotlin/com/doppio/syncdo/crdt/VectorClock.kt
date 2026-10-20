@@ -3,7 +3,7 @@ package com.doppio.syncdo.crdt
 import kotlinx.serialization.Serializable
 
 /** Identifier of a replica (a device, a server). Must be unique and stable over time. */
-typealias NodeId = String
+public typealias NodeId = String
 
 /**
  * Vector clock: one event counter per node, used to track causality between replicas.
@@ -29,15 +29,15 @@ typealias NodeId = String
  * @property entries the counter of each node. A missing node counts as 0.
  */
 @Serializable
-data class VectorClock(
-    val entries: Map<NodeId, Long> = emptyMap()
+public data class VectorClock(
+    public val entries: Map<NodeId, Long> = emptyMap()
 ) : CrdtState<VectorClock> {
 
     /** The counter of [nodeId], or 0 if this clock has never seen it. */
-    operator fun get(nodeId: NodeId): Long = entries.getOrElse(nodeId) { 0L }
+    public operator fun get(nodeId: NodeId): Long = entries.getOrElse(nodeId) { 0L }
 
     /** A copy of this clock where the counter of [nodeId] is increased by one. */
-    fun increment(nodeId: NodeId): VectorClock =
+    public fun increment(nodeId: NodeId): VectorClock =
         copy(entries = entries + (nodeId to this[nodeId] + 1))
 
     /** The pointwise max of both clocks. */
@@ -49,6 +49,6 @@ data class VectorClock(
      * has seen every event this clock has seen. Two concurrent clocks are each false for
      * the other.
      */
-    fun isLessThanOrEqual(other: VectorClock): Boolean =
+    public fun isLessThanOrEqual(other: VectorClock): Boolean =
         (entries.keys + other.entries.keys).all { this[it] <= other[it] }
 }

@@ -48,6 +48,10 @@ Architecture deep-dive: [docs/crdt-implementation.md](docs/crdt-implementation.m
 
 ## Using the libraries
 
+The libraries are not on Maven Central yet. Until the first release, publish them
+locally with `./gradlew :crdt:publishToMavenLocal :sync:publishToMavenLocal` and
+consume them from `mavenLocal()`:
+
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
@@ -65,8 +69,9 @@ Quickstarts: [`:crdt` README](crdt/README.md) (build a CRDT aggregate),
 
 ## Running the sample app
 
-Prereqs: JDK 11+, Android Studio / IntelliJ with KMP plugin, two devices or
-emulators for the sync demo.
+Prereqs: JDK 17+ to run Gradle (the desktop app asks for a JDK 21 toolchain,
+provisioned automatically), Android Studio / IntelliJ with KMP plugin, two devices
+or emulators for the sync demo.
 
 ```shell
 ./gradlew :server:run                  # Port 8080
@@ -78,7 +83,9 @@ emulators for the sync demo.
 Server config (env vars):
 
 - `SYNCDO_PORT` - bind port (default `8080`).
-- `SYNCDO_STATE_DIR` - directory for the persisted JSON state (default `./data`).
+- `SYNCDO_STATE_DIR` - directory for the persisted JSON state (default `./data`,
+  relative to the working directory, so `server/data/` under `./gradlew :server:run`;
+  not tracked in version control).
 
 On first launch each client asks for the server host. Enter:
 

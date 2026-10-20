@@ -5,14 +5,6 @@ plugins {
     application
 }
 
-kotlin {
-    compilerOptions {
-        // Kotlin 2.3.x is a pre-release; skip the check so the JVM-only server module
-        // can load classes produced by the KMP-compiled shared module.
-        freeCompilerArgs.add("-Xskip-prerelease-check")
-    }
-}
-
 group = "com.doppio.syncdo"
 version = "1.0.0"
 application {

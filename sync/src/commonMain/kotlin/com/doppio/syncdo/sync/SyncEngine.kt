@@ -15,6 +15,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -42,7 +43,7 @@ import kotlinx.serialization.json.Json
  * - [getLocalClock]: read on connect to build the initial [SyncMessage.PullRequest].
  *   Must reflect every delta the application has already applied locally.
  */
-class SyncEngine<D : ClockedState<D>>(
+public class SyncEngine<D : ClockedState<D>>(
     deltaSerializer: KSerializer<D>,
     private val serverHost: String,
     private val serverPort: Int,
@@ -61,9 +62,10 @@ class SyncEngine<D : ClockedState<D>>(
         install(WebSockets)
     }
 
+    private val _syncStatus = MutableStateFlow(SyncStatus.Offline)
+
     /** Current connection and sync state, for the UI. Starts as [SyncStatus.Offline]. */
-    val syncStatus: StateFlow<SyncStatus>
-        field = MutableStateFlow(SyncStatus.Offline)
+    public val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
     private var session: WebSocketSession? = null
     private var connectJob: Job? = null
@@ -73,12 +75,12 @@ class SyncEngine<D : ClockedState<D>>(
      * exponential backoff (1 s up to 30 s). On each connection, pulls what was missed and
      * pushes pending changes.
      */
-    fun start() {
+    public fun start() {
         connectJob = scope.launch {
             var backoff = 1_000L
             while (isActive) {
                 try {
-                    syncStatus.update { SyncStatus.Syncing }
+                    _syncStatus.update { SyncStatus.Syncing }
                     client.webSocket(host = serverHost, port = serverPort, path = path) {
                         session = this
                         backoff = 1_000L
@@ -90,7 +92,7 @@ class SyncEngine<D : ClockedState<D>>(
                         send(Frame.Text(json.encodeToString(messageSerializer, pullRequest)))
 
                         pushPendingDelta()
-                        syncStatus.update { SyncStatus.Synced }
+                        _syncStatus.update { SyncStatus.Synced }
 
                         for (frame in incoming) {
                             if (frame is Frame.Text) {
@@ -101,7 +103,7 @@ class SyncEngine<D : ClockedState<D>>(
                     }
                 } catch (e: Exception) {
                     logger.log(SyncLogLevel.Warn, "SyncEngine: connection error: ${e.message}", e)
-                    syncStatus.update { SyncStatus.Offline }
+                    _syncStatus.update { SyncStatus.Offline }
                 }
                 session = null
                 delay(backoff)
@@ -116,36 +118,36 @@ class SyncEngine<D : ClockedState<D>>(
             is SyncMessage.PushDelta -> onRemoteDelta(message.delta)
             is SyncMessage.PullRequest -> return // Server-bound; ignore on client.
         }
-        syncStatus.update { SyncStatus.Synced }
+        _syncStatus.update { SyncStatus.Synced }
     }
 
     /**
      * Push the pending local changes now, if connected. Call it after each local mutation.
      * When offline, the changes stay pending and are pushed on the next connection.
      */
-    suspend fun pushPendingDelta() {
+    public suspend fun pushPendingDelta() {
         val ws = session ?: run {
-            syncStatus.update { SyncStatus.PendingChanges }
+            _syncStatus.update { SyncStatus.PendingChanges }
             return
         }
         val delta = getPendingDelta() ?: return
         try {
-            syncStatus.update { SyncStatus.Syncing }
+            _syncStatus.update { SyncStatus.Syncing }
             val message: SyncMessage<D> = SyncMessage.PushDelta(delta = delta, nodeId = nodeId)
             ws.send(Frame.Text(json.encodeToString(messageSerializer, message)))
         } catch (e: Exception) {
             logger.log(SyncLogLevel.Warn, "SyncEngine: failed to push delta: ${e.message}", e)
             restorePendingDelta(delta)
-            syncStatus.update { SyncStatus.PendingChanges }
+            _syncStatus.update { SyncStatus.PendingChanges }
         }
     }
 
     /** Disconnect and wait until the connection loop has stopped. */
-    suspend fun stop() {
+    public suspend fun stop() {
         connectJob?.cancelAndJoin()
         connectJob = null
         runCatching { session?.close() }
         session = null
-        syncStatus.update { SyncStatus.Offline }
+        _syncStatus.update { SyncStatus.Offline }
     }
 }

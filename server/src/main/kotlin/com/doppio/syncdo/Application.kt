@@ -19,7 +19,8 @@ private val logger = LoggerFactory.getLogger("com.doppio.syncdo.Application")
 
 fun main() {
     val port = System.getenv("SYNCDO_PORT")?.toIntOrNull() ?: SERVER_PORT
-    val server = embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module)
+    val stateDir = System.getenv("SYNCDO_STATE_DIR") ?: "./data"
+    val server = embeddedServer(Netty, port = port, host = "0.0.0.0") { module(stateDir) }
 
     Runtime.getRuntime().addShutdownHook(Thread {
         logger.info("Shutting down SyncDO server…")
@@ -30,12 +31,18 @@ fun main() {
     server.start(wait = true)
 }
 
-fun Application.module() {
+/**
+ * Ktor module of the sample server.
+ *
+ * @param stateDir directory holding the persisted JSON state. Relative paths resolve against
+ *   the working directory (`server/` under `./gradlew :server:run`); tests pass a temp dir.
+ */
+fun Application.module(stateDir: String) {
     configureSockets()
     configureSerialization()
 
     val storage = JsonFileStorage(
-        basePath = System.getenv("SYNCDO_STATE_DIR") ?: "./data",
+        basePath = stateDir,
         logger = { msg, err -> logger.warn("storage: {}", msg, err) },
     )
     val initial = runBlocking { storage.load() } ?: TodoListCrdt()

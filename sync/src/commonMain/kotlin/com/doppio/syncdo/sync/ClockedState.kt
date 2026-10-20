@@ -10,10 +10,10 @@ import com.doppio.syncdo.crdt.VectorClock
  * The same type is used for full states and for deltas (a delta is just a small state),
  * and [clock] tells which deltas a peer has not seen yet.
  */
-interface ClockedState<S : ClockedState<S>> : CrdtState<S> {
+public interface ClockedState<S : ClockedState<S>> : CrdtState<S> {
     /**
      * The events this state contains: the clock of the replica that produced it. For a delta,
      * the clock of its author right after the change.
      */
-    val clock: VectorClock
+    public val clock: VectorClock
 }

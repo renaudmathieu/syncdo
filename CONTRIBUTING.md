@@ -50,7 +50,10 @@ To run the demo end-to-end locally:
 
 - One logical change per PR.
 - Run `./gradlew check` before opening - it covers tests and `apiCheck` for the
-  published libraries.
+  published libraries. CI (`.github/workflows/ci.yml`) runs the same on every
+  pull request, plus the iOS simulator tests of both libraries on macOS.
+- `:crdt` and `:sync` compile in Kotlin's explicit API mode: every public
+  declaration needs a `public` modifier and an explicit return type.
 - If your change touches `:crdt` or `:sync` public surface, mention it in the
   PR description and include the `apiDump` diff.
 

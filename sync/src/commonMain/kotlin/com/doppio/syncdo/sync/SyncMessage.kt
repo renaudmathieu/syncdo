@@ -17,7 +17,7 @@ import kotlinx.serialization.Serializable
  *                    something is missing), and to broadcast every peer's pushed delta.
  */
 @Serializable
-sealed interface SyncMessage<D> {
+public sealed interface SyncMessage<D> {
 
     /**
      * Client to server: a local change to merge into the server state and forward to peers.
@@ -27,9 +27,9 @@ sealed interface SyncMessage<D> {
      */
     @Serializable
     @SerialName("push_delta")
-    data class PushDelta<D>(
-        val delta: D,
-        val nodeId: NodeId,
+    public data class PushDelta<D>(
+        public val delta: D,
+        public val nodeId: NodeId,
     ) : SyncMessage<D>
 
     /**
@@ -40,9 +40,9 @@ sealed interface SyncMessage<D> {
      */
     @Serializable
     @SerialName("pull_request")
-    data class PullRequest<D>(
-        val clock: VectorClock,
-        val nodeId: NodeId,
+    public data class PullRequest<D>(
+        public val clock: VectorClock,
+        public val nodeId: NodeId,
     ) : SyncMessage<D>
 
     /**
@@ -52,7 +52,7 @@ sealed interface SyncMessage<D> {
      */
     @Serializable
     @SerialName("pull_response")
-    data class PullResponse<D>(
-        val delta: D,
+    public data class PullResponse<D>(
+        public val delta: D,
     ) : SyncMessage<D>
 }

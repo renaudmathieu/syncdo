@@ -17,5 +17,11 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 
-server/src/main/resources/audio
+# Runtime state written by the sample server (JsonFileStorage, default ./data)
+data/
+server/data/
+
+# Per-user Claude Code files
+.claude/settings.local.json
+.claude/worktrees/
 

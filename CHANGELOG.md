@@ -53,6 +53,13 @@ public API may evolve; breaking changes are called out below.
   `api` dependency.
 
 ### Fixed
+- `:sync` no longer compiles with `-Xexplicit-backing-fields`, which flagged every
+  class of the published artifact as built by a pre-release Kotlin compiler and
+  forced consumers to pass `-Xskip-prerelease-check`.
+- Both libraries now pin the JVM bytecode level of their `-jvm` artifact to
+  Java 11 (previously inherited from the JDK running Gradle), enable Kotlin's
+  explicit API mode, and are configured for Maven Central (Central Portal,
+  signed publications).
 - The server no longer sends the full state after every push: an up-to-date
   client now gets no catch-up message.
 - A client further behind than the server's delta log now receives the full

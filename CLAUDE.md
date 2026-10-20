@@ -53,8 +53,8 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 - `SyncMessage<D>` - sealed: `PushDelta`, `PullRequest`, `PullResponse`. Serialize
   with `SyncMessage.serializer(deltaSerializer)`.
 - `SyncEngine<D : ClockedState<D>>` - client WebSocket engine. Constructor takes a
-  `KSerializer<D>`, four suspending callbacks (`onRemoteDelta`,
-  `getPendingDelta`, `restorePendingDelta`, `getLocalClock`), and an optional
+  `KSerializer<D>`, four callbacks (`onRemoteDelta`, `getPendingDelta` and
+  `restorePendingDelta` are suspending, `getLocalClock` is not), and an optional
   `SyncLogger` (defaults to `Noop`). `stop()` is suspending and joins the
   connect loop before returning. Exponential backoff reconnect.
 - `SyncLogger` - `fun interface` sink for diagnostics. Replaces all internal
@@ -98,5 +98,5 @@ domain-agnostic. Todo-specific concepts belong in `:shared`.
 
 ## `design.pen`
 
-Pencil design file at the repo root. Read only via the Pencil MCP tools, not
+Pencil design file at `design/design.pen`. Read only via the Pencil MCP tools, not
 standard file tools.

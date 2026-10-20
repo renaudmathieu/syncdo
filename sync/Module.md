@@ -18,8 +18,8 @@ Multiplatform. The client engine runs on Android, iOS and JVM; the server helper
 
 Three [SyncMessage][com.doppio.syncdo.sync.SyncMessage]s travel over one WebSocket:
 
-- `PullRequest(clock)`, client to server, on connect: "here is what I have seen";
-- `PushDelta(delta)`, client to server, after each local change;
+- `PullRequest(clock, nodeId)`, client to server, on connect: "here is what I have seen";
+- `PushDelta(delta, nodeId)`, client to server, after each local change;
 - `PullResponse(delta)`, server to client: what the client is missing (recent deltas
   merged into one, or the full state when the server's log is too short), and every
   peer's pushed delta.

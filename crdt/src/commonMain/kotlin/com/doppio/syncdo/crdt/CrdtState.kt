@@ -35,8 +35,8 @@ package com.doppio.syncdo.crdt
  * @param T the implementing type itself (`class Foo : CrdtState<Foo>`), so that [merge]
  *   takes and returns the concrete type.
  */
-interface CrdtState<T : CrdtState<T>> {
+public interface CrdtState<T : CrdtState<T>> {
 
     /** Combine this state with [other] and return the result. Neither operand is modified. */
-    fun merge(other: T): T
+    public fun merge(other: T): T
 }

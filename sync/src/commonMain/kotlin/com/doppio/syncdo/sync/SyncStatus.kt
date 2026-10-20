@@ -3,7 +3,7 @@ package com.doppio.syncdo.sync
 /**
  * State of a [SyncEngine]. Exposed as a `StateFlow` on the engine for UI binding.
  */
-enum class SyncStatus {
+public enum class SyncStatus {
     /** Connected to the server and caught up. */
     Synced,
     /** Actively pushing or pulling. */

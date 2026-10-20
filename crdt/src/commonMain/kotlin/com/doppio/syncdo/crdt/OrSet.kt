@@ -12,9 +12,9 @@ import kotlinx.serialization.Serializable
  * @property counter a number that [nodeId] never uses twice.
  */
 @Serializable
-data class UniqueTag(
-    val nodeId: NodeId,
-    val counter: Long
+public data class UniqueTag(
+    public val nodeId: NodeId,
+    public val counter: Long
 )
 
 /**
@@ -59,45 +59,45 @@ data class UniqueTag(
  * @property tombstones the removed tags of each element that was ever removed.
  */
 @Serializable
-data class OrSet<E>(
-    val entries: Map<E, Set<UniqueTag>> = emptyMap(),
-    val tombstones: Map<E, Set<UniqueTag>> = emptyMap()
+public data class OrSet<E>(
+    public val entries: Map<E, Set<UniqueTag>> = emptyMap(),
+    public val tombstones: Map<E, Set<UniqueTag>> = emptyMap()
 ) : CrdtState<OrSet<E>> {
 
     /** True if [element] is in the set. */
-    fun contains(element: E): Boolean = element in entries
+    public fun contains(element: E): Boolean = element in entries
 
     /** The elements currently in the set. */
-    fun elements(): Set<E> = entries.keys
+    public fun elements(): Set<E> = entries.keys
 
     /**
      * True if this set holds no tag at all, live or tombstoned. Useful to detect an empty
      * delta; note that a set whose elements were all removed is not empty.
      */
-    fun isEmpty(): Boolean = entries.isEmpty() && tombstones.isEmpty()
+    public fun isEmpty(): Boolean = entries.isEmpty() && tombstones.isEmpty()
 
     /**
      * The change "add [element] with [tag]", as a delta to [merge].
      *
      * @param tag a tag never used before, see [UniqueTag].
      */
-    fun addDelta(element: E, tag: UniqueTag): OrSet<E> =
+    public fun addDelta(element: E, tag: UniqueTag): OrSet<E> =
         OrSet(entries = mapOf(element to setOf(tag)))
 
     /**
      * The change "remove [element]", as a delta to [merge]: it tombstones every tag this
      * set has observed for [element]. Empty (see [isEmpty]) if [element] is not in the set.
      */
-    fun removeDelta(element: E): OrSet<E> {
+    public fun removeDelta(element: E): OrSet<E> {
         val observedTags = entries[element] ?: return OrSet()
         return OrSet(tombstones = mapOf(element to observedTags))
     }
 
     /** This set with [element] added. Shorthand for `merge(addDelta(element, tag))`. */
-    fun add(element: E, tag: UniqueTag): OrSet<E> = merge(addDelta(element, tag))
+    public fun add(element: E, tag: UniqueTag): OrSet<E> = merge(addDelta(element, tag))
 
     /** This set with [element] removed. Shorthand for `merge(removeDelta(element))`. */
-    fun remove(element: E): OrSet<E> = merge(removeDelta(element))
+    public fun remove(element: E): OrSet<E> = merge(removeDelta(element))
 
     /** Union of both sets: union of the tombstones, union of the tags minus the tombstoned ones. */
     override fun merge(other: OrSet<E>): OrSet<E> {

@@ -38,14 +38,14 @@ class OfflineFirstTodoRepository(
             initialValue = initialState.toTodoItems()
         )
 
-    override val syncStatus: StateFlow<SyncStatus>
-        field = MutableStateFlow(SyncStatus.Offline)
+    private val _syncStatus = MutableStateFlow(SyncStatus.Offline)
+    override val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
     fun attachSyncEngine(engine: SyncEngine<TodoListCrdt>, scope: CoroutineScope) {
         statusCollectionJob?.cancel()
         syncEngine = engine
         statusCollectionJob = scope.launch {
-            engine.syncStatus.collect { status -> syncStatus.update { status } }
+            engine.syncStatus.collect { status -> _syncStatus.value = status }
         }
     }
 
