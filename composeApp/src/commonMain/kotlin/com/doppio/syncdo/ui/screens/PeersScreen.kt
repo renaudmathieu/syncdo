@@ -48,8 +48,7 @@ fun PeersScreen(
         ) {
             Text(
                 text = "Peers",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }

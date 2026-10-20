@@ -43,6 +43,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.kyant.backdrop)
+            implementation(libs.androidx.navigationevent.compose)
             implementation(libs.kotlinx.datetime)
             implementation(projects.shared)
         }
@@ -59,7 +61,8 @@ kotlin {
 
 android {
     namespace = "com.doppio.syncdo"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    // io.github.kyant0:backdrop requires compileSdk 37 (sample app only, libraries stay on 36)
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.doppio.syncdo"
@@ -91,6 +94,10 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.doppio.syncdo.MainKt"
+        // io.github.kyant0:backdrop ships Java 21 bytecode for desktop
+        javaHome = javaToolchains.launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }.get().metadata.installationPath.asFile.absolutePath
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

@@ -21,7 +21,9 @@ data class TodoUiState(
     val selectedTodo: TodoItem? get() = todos.find { it.id == selectedTodoId }
 }
 
-class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
+class TodoViewModel(
+    private val repository: TodoRepository
+) : ViewModel() {
 
     private val _selectedTodoId = MutableStateFlow<String?>(null)
 

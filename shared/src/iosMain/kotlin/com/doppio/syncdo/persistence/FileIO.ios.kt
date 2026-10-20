@@ -2,6 +2,7 @@ package com.doppio.syncdo.persistence
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
@@ -25,6 +26,7 @@ actual suspend fun writeTextFile(path: String, content: String) = withContext(Di
     Unit
 }
 
+@OptIn(ExperimentalForeignApi::class)
 actual suspend fun deleteFile(path: String): Boolean = withContext(Dispatchers.IO) {
     NSFileManager.defaultManager.removeItemAtPath(path, null)
 }
